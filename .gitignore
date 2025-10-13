@@ -1,2 +1,53 @@
-# created by virtualenv automatically
-.venv/bin
+# ---- Python bytecode & cache ----
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+
+# ---- Packaging / build artifacts ----
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ---- Virtual environments ----
+.venv/
+venv/
+env/
+ENV/
+
+# ---- Testing / tooling caches ----
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ---- Editors / OS ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+
+# ---- Project outputs & runtime dirs ----
+outputs/
+logs/
+.cache/
+
+# ---- Input datasets (large, read-only) ----
+simulations/
+
+# ---- ParaView temporary/session files (if any) ----
+*.pvsm
+*.pvcc
+*.pvsb
+*.vtk.lock
+
+# ---- Local overrides (keep config.json tracked) ----
+config.local.json

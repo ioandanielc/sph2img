@@ -13,29 +13,29 @@ Create a clean, reproducible **image dataset** from SPH simulation output using 
 ## Directory layout
 
 ```text
-traces/                          # GIT ROOT
+sph2img/                      # GIT ROOT
 ├─ README.md
 ├─ .gitignore
-├─ config.json                   # single source of truth (see below)
+├─ config.json                # single source of truth (see below)
 │
-├─ simulations/                  # INPUT data (read-only)
+├─ simulations/               # INPUT data (read-only)
 │  └─ mhpc3d_200W_Ti64_Ar-3/...
 │
-├─ outputs/                      # OUTPUTS (no code here)
+├─ outputs/                   # OUTPUTS (no code here)
 │  ├─ screenshots/
 │  └─ gifs/
 │
-├─ logs/                         # runtime logs (pvlog)
-├─ .cache/                       # scratch/temp
+├─ logs/                      # runtime logs (pvlog)
+├─ .cache/                    # scratch/temp
 │
 └─ src/
-   ├─ bin/                       # ENTRYPOINTS you run
-   │  ├─ sph2img.py              # pvbatch driver (SPH→slices→capture→GIF)
-   │  └─ pv_config_check.py      # preflight sanity check
+   ├─ bin/                    # ENTRYPOINTS you run
+   │  ├─ sph2img.py           # pvbatch driver (SPH→slices→capture→GIF)
+   │  └─ pv_config_check.py   # preflight sanity check
    │
-   └─ sph2img/                   # IMPORTABLE LIB (your code)
+   └─ sph2img/                # IMPORTABLE LIB (your code)
       ├─ __init__.py
-      ├─ config.py               # get_config(): JSON→immutable settings
+      ├─ config.py            # get_config(): JSON→immutable settings
       ├─ stages/
       │  ├─ sph_creator.py
       │  ├─ slice_creator.py
@@ -82,7 +82,7 @@ pvpython --version
 
 ## Configuration
 
-One file: **`config.json`** at repo root (`traces/`). No environment overrides needed.
+One file: **`config.json`** at repo root (`sph2img/`). No environment overrides needed.
 
 ```json
 {
@@ -185,21 +185,8 @@ pvbatch src/bin/sph2img.py
 ## Troubleshooting
 
 - **Black screenshots / X errors**: your ParaView build may not support offscreen on that node. Try an OSMesa/EGL build or run with a display.
-- **“module not found”**: ensure you run from repo root (`traces/`) so `src/` path bootstrap works.
+- **“module not found”**: ensure you run from repo root (`sph2img/`) so `src/` path bootstrap works.
 - **GIF not created**: check Pillow availability and where `gif_maker.py` writes (screenshots folder vs `outputs/gifs/`).
-
----
-
-## FAQ
-
-**Why no environment variables?**  
-Simplicity. One `config.json` controls everything. Change it, commit it, done.
-
-**Can I keep multiple configs (dev/prod)?**  
-Yes—use `config.prod.json` and teach `sph2img/config.py` to prefer it, or just swap `config.json` as needed.
-
-**Can I change per-view resolutions?**  
-Yes—set `front_w/front_h`, `side_w/side_h`, `top_w/top_h` in `config.json`.
 
 ---
 
