@@ -61,6 +61,10 @@ class Milestone:
 def _set_time_by_index(idx: int) -> None:
     scene = GetAnimationScene()
     steps = list(scene.TimeKeeper.TimestepValues)
+    print('Y')
+    print(steps)
+    print('Y')
+    steps = [0.0]
     if not steps:
         raise RuntimeError("No time steps available in the current pipeline.")
     if not (0 <= idx < len(steps)):

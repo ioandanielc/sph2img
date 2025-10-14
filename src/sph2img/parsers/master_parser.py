@@ -55,7 +55,6 @@ def run(path_to_simulation: str):
     pos_bounds_list = parser_utils.list_of_lists_of_str_to(pos_bounds_list, float)
     time_list = parser_utils.list_of_str_to(time_list, float)
     vtk_iterations = parser_utils.list_of_str_to(vtk_iterations, int)
-
     # Laser positions at each VTK iteration: t * v (component-wise)
     laser_positions_at_vtk_iterations = [
         [time_list[vi] * laser_velocity[0],
