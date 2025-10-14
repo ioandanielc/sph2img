@@ -58,6 +58,11 @@ class Milestone:
 def _set_time_by_index(idx: int) -> None:
     scene = GetAnimationScene()
     steps = list(scene.TimeKeeper.TimestepValues)
+    print('Y')
+    print(steps)
+    steps = [1.0]
+    print(steps)
+    print('Y')
     if not steps:
         raise RuntimeError("No time steps available in the current pipeline.")
     if not (0 <= idx < len(steps)):
@@ -68,6 +73,9 @@ def _set_time_by_index(idx: int) -> None:
 def _last_time_index() -> int:
     scene = GetAnimationScene()
     steps = list(scene.TimeKeeper.TimestepValues)
+    print('Y')
+    steps = [1.0]
+    print('Y')
     if not steps:
         raise RuntimeError("No time steps available in the current pipeline.")
     return len(steps) - 1
