@@ -1,3 +1,4 @@
+#screencapture_through_milestones.py
 #!/usr/bin/env python3
 
 # --- path bootstrap: make `sph2img` importable even when run as a script -----
@@ -90,17 +91,16 @@ def _set_sph_slab_from_pc_height(
     domain_max: List[float],
     slab_half_x_frac: float,
     pad_mult_x: float,
-    pad_mult_yz: float,   # kept for signature compatibility (unused for Y/Z now)
+    pad_mult_yz: float,   # kept for signature compatibility (unused)
     center_y: float = 0.0,
     center_z: float = 0.0,
 ) -> None:
     """
-    Compute point-cloud height H_pc from the upstream proxy's current timestep,
-    then size the SPH bounded volume slab around (center_x, 0, 0).
-
-    Rule (updated to always capture WALLs in side view):
-      - X: slab half-width = slab_half_x_frac * H_pc; then pad by pad_mult_x * H_pc on both sides
-      - Y/Z: use the FULL domain extents (ignores pad_mult_yz)
+    Compute point-cloud height H_pc from the upstream proxy's current timestep.
+    Slab sizing:
+      - X: half-width = slab_half_x_frac * H_pc; then pad by pad_mult_x * H_pc on both sides
+      - Y: center_y ± 1.1 * (slab half-width in X)
+      - Z: center_z ± 1.1 * (slab half-width in X)
     """
     # Try live upstream bounds for current timestep
     try:
@@ -113,8 +113,10 @@ def _set_sph_slab_from_pc_height(
         zmin, zmax = float(domain_min[2]), float(domain_max[2])
         H_pc = max(0.0, zmax - zmin)
 
+    # Slab parameters
     half_x = float(slab_half_x_frac) * H_pc
     pad_x  = float(pad_mult_x) * H_pc
+    band_yz = 1.1 * half_x  # <-- requested: use 1.1 * slab half-width for Y and Z
 
     minx, miny, minz = map(float, domain_min)
     maxx, maxy, maxz = map(float, domain_max)
@@ -123,9 +125,11 @@ def _set_sph_slab_from_pc_height(
     x_lo = _clamp(center_x - half_x - pad_x, minx, maxx)
     x_hi = _clamp(center_x + half_x + pad_x, minx, maxx)
 
-    # Y/Z: FULL domain to guarantee walls are visible in side/top views
-    y_lo, y_hi = miny, maxy
-    z_lo, z_hi = minz, maxz
+    # Y/Z: ±(1.1 * half_x) around center, clamped to domain
+    y_lo = _clamp(center_y - band_yz, miny, maxy)
+    y_hi = _clamp(center_y + band_yz, miny, maxy)
+    z_lo = _clamp(center_z - band_yz, minz, maxz)
+    z_hi = _clamp(center_z + band_yz, minz, maxz)
 
     sph.Source.Origin = [x_lo, y_lo, z_lo]
     sph.Source.Scale  = [max(1e-30, x_hi - x_lo),
