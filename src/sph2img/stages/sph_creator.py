@@ -301,23 +301,25 @@ def prepare_sph_interpolator(path_to_simulation: str):
     sph.ComputeShepardSum = 1
 
     # --- show & color map (kept minimal; no scalar bar by default) ---
-    disp = Show(sph, render_view, "UniformGridRepresentation")
-    ColorBy(disp, ("POINTS", "phase_change_counter"))
-    disp.SetRepresentationType("Point Gaussian")
-    disp.GaussianRadius = 3e-06
-    disp.RescaleTransferFunctionToDataRange(True, False)
-
-    phase_change_counterLUT = GetColorTransferFunction("phase_change_counter")
-    HideScalarBarIfNotNeeded(phase_change_counterLUT, render_view)
-    _ = GetOpacityTransferFunction("phase_change_counter")
-    _ = GetTransferFunction2D("phase_change_counter")
-
-    render_view.ResetCamera(False, 0.9)
-
-    # sync animation (kept as in your original)
-    anim = GetAnimationScene()
-    anim.AnimationTime = 5.0
-    anim.UpdateAnimationUsingDataTimeSteps()
+    # disp = Show(sph, render_view, "UniformGridRepresentation")
+    # logger.info("X1.")
+    #
+    # ColorBy(disp, ("POINTS", "phase_change_counter"))
+    # disp.SetRepresentationType("Point Gaussian")
+    # disp.GaussianRadius = 3e-06
+    # disp.RescaleTransferFunctionToDataRange(True, False)
+    #
+    # phase_change_counterLUT = GetColorTransferFunction("phase_change_counter")
+    # HideScalarBarIfNotNeeded(phase_change_counterLUT, render_view)
+    # _ = GetOpacityTransferFunction("phase_change_counter")
+    # _ = GetTransferFunction2D("phase_change_counter")
+    #
+    # render_view.ResetCamera(False, 0.9)
+    #
+    # # sync animation (kept as in your original)
+    # anim = GetAnimationScene()
+    # anim.AnimationTime = 5.0
+    # anim.UpdateAnimationUsingDataTimeSteps()
 
     logger.info("SPH interpolator ready.")
     return sph
