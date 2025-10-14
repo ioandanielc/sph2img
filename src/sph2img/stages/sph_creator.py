@@ -10,14 +10,13 @@ if str(_SRC) not in sys.path:
 
 import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 from sph2img.utils.pvlog import get_logger
 from sph2img.config import get_config
 from sph2img.parsers import master_parser
 from sph2img.utils.pvhelpers import run_main_if_testing, pv_view_name
 from sph2img.utils.pvhelpers import run_main_if_testing  # re-import safe; clarify intent
-
 
 # ParaView heavy deps (runtime environment must provide them)
 from paraview import servermanager  # type: ignore
@@ -40,11 +39,30 @@ from paraview.simple import (  # type: ignore
 
 logger = get_logger(__name__)
 
+# ----------------------------
+# module-level handles (for other stages to reuse)
+# ----------------------------
+_SPH = None                  # SPHVolumeInterpolator
+_UPSTREAM = None             # last pre-SPH proxy (combined dataset)
+_DOMAIN_MIN: Optional[List[float]] = None
+_DOMAIN_MAX: Optional[List[float]] = None
+_H_SMOOTH: Optional[float] = None
+
+def get_sph():
+    return _SPH
+
+def get_upstream():
+    return _UPSTREAM
+
+def get_domain_bounds() -> Tuple[Optional[List[float]], Optional[List[float]]]:
+    return _DOMAIN_MIN, _DOMAIN_MAX
+
+def get_smoothing_length() -> Optional[float]:
+    return _H_SMOOTH
 
 # ----------------------------
 # session helpers
 # ----------------------------
-
 def reset_session() -> None:
     """Terminate the current ParaView session and start a new one."""
     logger.info("Resetting ParaView session…")
@@ -55,21 +73,15 @@ def reset_session() -> None:
     Connect()
     logger.info("Session reset complete.")
 
-
 # ----------------------------
 # data discovery
 # ----------------------------
-
 _PHASE_RE = re.compile(r"^out_phase_(\d+)_(\w+)_rank_0_(\d+)\.vtk$")
-
 
 def collect_phase_files(path_to_simulation: str) -> Dict[str, List[str]]:
     """
     Collect all VTK files under <sim>/output and group them by "<phase_num>_<material>".
     Lists are sorted by timestep ascending.
-
-    Returns:
-        dict like {"1_SOLID": [paths...], "2_LIQUID": [...], "3_GAS": [...], "4_WALL": [...]}
     """
     out_dir = Path(path_to_simulation) / "output"
     if not out_dir.is_dir():
@@ -96,13 +108,11 @@ def collect_phase_files(path_to_simulation: str) -> Dict[str, List[str]]:
         for k in sorted(phases):
             logger.info(
                 "  %-10s -> %d files (range: %s .. %s)",
-                k,
-                len(phases[k]),
+                k, len(phases[k]),
                 Path(phases[k][0]).name if phases[k] else "n/a",
                 Path(phases[k][-1]).name if phases[k] else "n/a",
             )
     return phases
-
 
 def create_readers(phases: Dict[str, List[str]]):
     """Create a LegacyVTKReader for each phase key and register them in the pipeline."""
@@ -117,18 +127,18 @@ def create_readers(phases: Dict[str, List[str]]):
         logger.info("Reader created for phase %s (%d files)", phase_key, len(files))
     return readers
 
-
 # ----------------------------
 # pipeline
 # ----------------------------
-
 def prepare_sph_interpolator(path_to_simulation: str):
     """
     Build a phase-agnostic SPH interpolator combining SOLID/LIQUID/GAS/WALL, and
-    return the created SPHVolumeInterpolator proxy. Also prepares the view.
+    prepare the view.
 
-    Returns:
-        SPHVolumeInterpolator proxy
+    Back-compat: returns the SPH proxy (unchanged), but also stores:
+      - _UPSTREAM (pre-SPH combined proxy)
+      - _DOMAIN_MIN / _DOMAIN_MAX
+      - _H_SMOOTH (smoothing length)
     """
     render_view = GetActiveViewOrCreate(pv_view_name())   # <-- use config default view
     render_view.OrientationAxesVisibility = 0
@@ -155,10 +165,10 @@ def prepare_sph_interpolator(path_to_simulation: str):
     logger.info("Creating readers for phases…")
     phases = collect_phase_files(path_to_simulation)
     try:
-        solid_phase = create_readers(phases)["1_SOLID"]
+        solid_phase  = create_readers(phases)["1_SOLID"]
         liquid_phase = create_readers(phases)["2_LIQUID"]
-        gas_phase = create_readers(phases)["3_GAS"]
-        wall_phase = create_readers(phases)["4_WALL"]
+        gas_phase    = create_readers(phases)["3_GAS"]
+        wall_phase   = create_readers(phases)["4_WALL"]
     except KeyError as e:
         raise RuntimeError(
             f"Missing expected phase in outputs: {e}. Have keys: {sorted(phases.keys())}"
@@ -259,16 +269,16 @@ def prepare_sph_interpolator(path_to_simulation: str):
         "Conservatives_1_0*iHat + Conservatives_2_0*jHat + Conservatives_3_0*kHat"
     )
 
-    # temperature
-    calc_temperature = Calculator(registrationName="Calculator_temperature", Input=calc_velocity)
-    calc_temperature.ResultArrayName = "temperature"
-    calc_temperature.Function = "Primitives_1_0"
+    # temperature (last derived array before SPH) — keep a handle; we’ll expose it
+    upstream_proxy = Calculator(registrationName="Calculator_temperature", Input=calc_velocity)
+    upstream_proxy.ResultArrayName = "temperature"
+    upstream_proxy.Function = "Primitives_1_0"
 
     # --- SPH volume interpolator ---
     logger.info("Creating SPHVolumeInterpolator for combined phases…")
     sph = SPHVolumeInterpolator(
         registrationName="SPHVolumeInterpolator_phase_change_counter",
-        Input=calc_temperature,
+        Input=upstream_proxy,
         Source="Bounded Volume",
     )
 
@@ -319,21 +329,26 @@ def prepare_sph_interpolator(path_to_simulation: str):
     anim.AnimationTime = 5.0
     anim.UpdateAnimationUsingDataTimeSteps()
 
-    logger.info("SPH interpolator ready.")
-    return sph
+    # publish handles for other stages
+    global _SPH, _UPSTREAM, _DOMAIN_MIN, _DOMAIN_MAX, _H_SMOOTH
+    _SPH = sph
+    _UPSTREAM = upstream_proxy
+    _DOMAIN_MIN = list(map(float, domain_min))
+    _DOMAIN_MAX = list(map(float, domain_max))
+    _H_SMOOTH = float(smoothing_length)
 
+    logger.info("SPH interpolator ready.")
+    return sph  # back-compat: run_all_pipeline() doesn't unpack extra values
 
 # ----------------------------
 # ParaView shell-friendly `main()` (no CLI args)
 # ----------------------------
-
 def main() -> None:
     cfg = get_config()
     sim_path = str(cfg.paths.sim_path)
     reset_session()
-    _sph = prepare_sph_interpolator(sim_path)
-    logger.info("prepare_phase_interpolator.main() finished for %s", sim_path)
-
+    _ = prepare_sph_interpolator(sim_path)
+    logger.info("sph_creator.main() finished for %s", sim_path)
 
 # Auto-run in PV shell/batch if paraview.testing=True (or env override)
 # run_main_if_testing(main)
