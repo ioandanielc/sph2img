@@ -1,3 +1,4 @@
+# sph_creator.py
 # --- path bootstrap: make `sph2img` importable even when run as a script -----
 import sys
 from pathlib import Path

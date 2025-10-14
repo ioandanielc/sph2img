@@ -1,3 +1,4 @@
+#screencapture_through_milestones.py
 #!/usr/bin/env python3
 
 # --- path bootstrap: make `sph2img` importable even when run as a script -----

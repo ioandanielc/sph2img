@@ -1,4 +1,4 @@
-# src/sph2img/paraview/run_all_pipeline.py
+# run_pipeline.py
 #!/usr/bin/env python3
 """
 High-level driver for SPH -> slice coloring -> milestone screencapture -> GIFs.
