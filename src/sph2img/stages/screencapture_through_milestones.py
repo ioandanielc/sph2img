@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 
 # --- path bootstrap: make `sph2img` importable even when run as a script -----
-import sys
+import sys, time
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]   # repo root (sph2img/)
@@ -13,9 +13,7 @@ if str(_SRC) not in sys.path:
 
 from dataclasses import dataclass
 from typing import List, Optional
-from pathlib import Path
 from datetime import datetime
-from zoneinfo import ZoneInfo  # Python 3.9+
 
 from sph2img.utils.pvlog import get_logger
 from sph2img.utils.pvhelpers import run_main_if_testing
@@ -38,9 +36,12 @@ log = get_logger(__name__)
 
 
 def create_timestamped_folder(base_dir: str = ".") -> Path:
-    """screenshots_YYYY-MM-DD_HH-MM-SS-MMM under base_dir (Europe/Berlin)."""
-    now = datetime.now(ZoneInfo("Europe/Berlin"))
-    millis = f"{int(now.microsecond / 1000):03d}"
+    """
+    Create screenshots_YYYY-MM-DD_HH-MM-SS-MMM under base_dir.
+    Uses the system's local time (no zoneinfo dependency).
+    """
+    now = datetime.fromtimestamp(time.time())  # local time
+    millis = f"{int((now.microsecond) / 1000):03d}"
     folder_name = f"screenshots_{now.strftime('%Y-%m-%d_%H-%M-%S')}-{millis}"
     path = Path(base_dir) / folder_name
     path.mkdir(parents=True, exist_ok=True)
