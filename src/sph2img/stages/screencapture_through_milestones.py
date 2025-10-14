@@ -90,17 +90,17 @@ def _set_sph_slab_from_pc_height(
     domain_max: List[float],
     slab_half_x_frac: float,
     pad_mult_x: float,
-    pad_mult_yz: float,
+    pad_mult_yz: float,   # kept for signature compatibility (unused for Y/Z now)
     center_y: float = 0.0,
     center_z: float = 0.0,
 ) -> None:
     """
     Compute point-cloud height H_pc from the upstream proxy's current timestep,
-    then size the SPH bounded volume slab around (center_x, center_y=0, center_z=0)
-    using the rule:
-      - X: pad by pad_mult_x * H_pc each side (your spec: 1.0)
-      - Y/Z: pad by pad_mult_yz * H_pc each side (your spec: 0.5)
-      - slab half-width in X = slab_half_x_frac * H_pc
+    then size the SPH bounded volume slab around (center_x, 0, 0).
+
+    Rule (updated to always capture WALLs in side view):
+      - X: slab half-width = slab_half_x_frac * H_pc; then pad by pad_mult_x * H_pc on both sides
+      - Y/Z: use the FULL domain extents (ignores pad_mult_yz)
     """
     # Try live upstream bounds for current timestep
     try:
@@ -115,17 +115,17 @@ def _set_sph_slab_from_pc_height(
 
     half_x = float(slab_half_x_frac) * H_pc
     pad_x  = float(pad_mult_x) * H_pc
-    pad_yz = float(pad_mult_yz) * H_pc
 
     minx, miny, minz = map(float, domain_min)
     maxx, maxy, maxz = map(float, domain_max)
 
+    # X: narrow + padding (clamped)
     x_lo = _clamp(center_x - half_x - pad_x, minx, maxx)
     x_hi = _clamp(center_x + half_x + pad_x, minx, maxx)
-    y_lo = _clamp(center_y - pad_yz, miny, maxy)
-    y_hi = _clamp(center_y + pad_yz, miny, maxy)
-    z_lo = _clamp(center_z - pad_yz, minz, maxz)
-    z_hi = _clamp(center_z + pad_yz, minz, maxz)
+
+    # Y/Z: FULL domain to guarantee walls are visible in side/top views
+    y_lo, y_hi = miny, maxy
+    z_lo, z_hi = minz, maxz
 
     sph.Source.Origin = [x_lo, y_lo, z_lo]
     sph.Source.Scale  = [max(1e-30, x_hi - x_lo),

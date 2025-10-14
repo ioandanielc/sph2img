@@ -1,7 +1,7 @@
 {
   "paths": {
     "project_root": "/Users/ioandanielcraciun/Python-Projects/sph2img",
-    "sim_path": "/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/mhpc3d_200W_Ti64_Ar-3",
+    "sim_path": "/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/mhpc3d_200W_Ti64_Ar-3_WHOLE",
     "out_dir":  "outputs/screenshots",
     "logs_dir": "logs",
     "cache_dir": ".cache"
