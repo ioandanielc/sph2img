@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -8,13 +9,11 @@ import re
 
 from sph2img.config import get_config
 
-_cfg = None  # cached config
-
 # ---------- formatting ----------
 _FMT = "%(asctime)s [%(levelname)s] pid=%(process)d %(name)s: %(message)s"
 _DATEFMT = "%Y-%m-%d %H:%M:%S"
 
-# ANSI support + colorizer (same trick as the snippet you showed)
+# ANSI support + colorizer
 _ESC_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 def _supports_color(stream) -> bool:
@@ -40,12 +39,13 @@ class _ColorFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         msg = super().format(record)
         if not self.enable_colors:
-            # strip any ANSI that might have slipped in
             return _ESC_RE.sub("", msg)
         color = self.COLORS.get(record.levelname, "")
         return f"{color}{msg}{self.RESET}" if color else msg
 
 # ---------- internals ----------
+
+_cfg = None  # cached config
 
 def _ensure_cfg():
     global _cfg
@@ -57,42 +57,61 @@ def _safe_file_handler(path: Path) -> logging.Handler | None:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         h = RotatingFileHandler(str(path), maxBytes=5_000_000, backupCount=2, encoding="utf-8")
-        # file logs are NOT colored
-        h.setFormatter(logging.Formatter(fmt=_FMT, datefmt=_DATEFMT))
+        h.setFormatter(logging.Formatter(fmt=_FMT, datefmt=_DATEFMT))  # file logs are plain (no ANSI)
         return h
     except Exception:
         return None
+
+class _LevelFilter(logging.Filter):
+    """Pass records whose level is between [min_level, max_level] inclusive."""
+    def __init__(self, min_level: int, max_level: int):
+        super().__init__()
+        self.min_level = min_level
+        self.max_level = max_level
+    def filter(self, record: logging.LogRecord) -> bool:
+        return self.min_level <= record.levelno <= self.max_level
 
 # ---------- public ----------
 
 def get_logger(name: str, run_name: str | None = None) -> logging.Logger:
     """
-    Return a module logger that logs to stderr (colored) and to logs/<run>_<pid>.log (plain).
+    Return a module logger that logs to:
+      - stdout (DEBUG/INFO, colored if terminal supports it)
+      - stderr (WARNING/ERROR/CRITICAL, colored)
+      - rotating file logs/<run_name>_<pid>.log (plain)
 
-    - `run_name` (optional) names the file; defaults to 'sph2img'.
-    - Log level defaults to INFO.
-    - Messages include PID on both console and file.
-    - Console colors: INFO=green, WARNING=yellow, ERROR/CRITICAL=red (CRITICAL has red bg), DEBUG=cyan.
+    Default level: INFO.
     """
     cfg = _ensure_cfg()
     logger = logging.getLogger(name)
+
     if getattr(logger, "_sph2img_configured", False):
         return logger
 
     logger.setLevel(logging.INFO)
     logger.propagate = False  # avoid duplicate emission via root
 
-    # Console (colorized)
-    use_color = _supports_color(sys.stderr)
-    ch = logging.StreamHandler(stream=sys.stderr)
-    ch.setFormatter(_ColorFormatter(fmt=_FMT, datefmt=_DATEFMT, enable_colors=use_color))
-    logger.addHandler(ch)
+    # Console handlers
+    use_color_out = _supports_color(sys.stdout)
+    use_color_err = _supports_color(sys.stderr)
 
-    # File (PID in filename)
+    # stdout: DEBUG..INFO
+    ch_out = logging.StreamHandler(stream=sys.stdout)
+    ch_out.addFilter(_LevelFilter(logging.DEBUG, logging.INFO))
+    ch_out.setFormatter(_ColorFormatter(fmt=_FMT, datefmt=_DATEFMT, enable_colors=use_color_out))
+    logger.addHandler(ch_out)
+
+    # stderr: WARNING..CRITICAL
+    ch_err = logging.StreamHandler(stream=sys.stderr)
+    ch_err.addFilter(_LevelFilter(logging.WARNING, logging.CRITICAL))
+    ch_err.setFormatter(_ColorFormatter(fmt=_FMT, datefmt=_DATEFMT, enable_colors=use_color_err))
+    logger.addHandler(ch_err)
+
+    # File handler (PID in filename)
     pid = os.getpid()
     base = run_name or "sph2img"
     fname = f"{base}_{pid}.log"
-    fh = _safe_file_handler(cfg.paths.logs_dir / fname)
+    fh = _safe_file_handler(Path(cfg.paths.logs_dir) / fname)
     if fh:
         logger.addHandler(fh)
 

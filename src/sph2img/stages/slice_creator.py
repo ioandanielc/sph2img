@@ -187,4 +187,4 @@ def main() -> None:
 
 
 # Auto-run in PV shell/batch if paraview.testing=True (or env override)
-run_main_if_testing(main)
+# run_main_if_testing(main)

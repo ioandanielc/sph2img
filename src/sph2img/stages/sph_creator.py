@@ -2,7 +2,7 @@
 import sys
 from pathlib import Path
 
-_ROOT = Path(__file__).resolve().parents[2]   # repo root (sph2img/)
+_ROOT = Path(__file__).resolve().parents[3]   # repo root (sph2img/)
 _SRC = _ROOT / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
@@ -110,6 +110,7 @@ def create_readers(phases: Dict[str, List[str]]):
     for phase_key, files in phases.items():
         if not files:
             continue
+        print(files)
         readers[phase_key] = LegacyVTKReader(
             registrationName=f"out_phase_{phase_key}.vtk",
             FileNames=files,
@@ -338,4 +339,4 @@ def main() -> None:
 
 
 # Auto-run in PV shell/batch if paraview.testing=True (or env override)
-# run_main_if_testing(main)
+run_main_if_testing(main)

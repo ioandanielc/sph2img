@@ -62,10 +62,10 @@ def reset_session() -> None:
 
 def create_reader(phase_path, phase_key, phase_iteration):
     """Create a LegacyVTKReader for each phase key and register them in the pipeline."""
-
+    l = [str(phase_path)]
     reader = LegacyVTKReader(
         registrationName=f"out_phase_{phase_key}_{phase_iteration}.vtk",
-        FileNames=phase_path,
+        FileNames=l,
     )
     logger.info("Reader created for phase %s at iteration %d", phase_key, phase_iteration)
 
@@ -76,8 +76,8 @@ def create_reader(phase_path, phase_key, phase_iteration):
 # pipeline
 # ----------------------------
 
-def prepare_sph_interpolator(path_to_simulation: str,
-                             iteration_number: int,
+def prepare_sph_interpolator(iteration_number: int,
+                             path_to_simulation: str,
                              path_to_solid_phase: str,
                              path_to_liquid_phase: str,
                              path_to_gas_phase: str,
@@ -113,7 +113,7 @@ def prepare_sph_interpolator(path_to_simulation: str,
 
     logger.info("Creating readers for phases…")
     try:
-        solid_phase_single = create_reader(path_to_solid_phase, 'SOLID', iteration_number)
+        solid_phase_single = create_reader(Path(path_to_solid_phase), 'SOLID', iteration_number)
         liquid_phase_single = create_reader(path_to_liquid_phase, 'LIQUID', iteration_number)
         gas_phase_single = create_reader(path_to_gas_phase, 'GAS', iteration_number)
         wall_phase_single = create_reader(path_to_wall_phase, 'WALL', iteration_number)
@@ -284,26 +284,18 @@ def prepare_sph_interpolator(path_to_simulation: str,
     ]
     sph.ComputeShepardSum = 1
 
-    # --- show & color map (kept minimal; no scalar bar by default) ---
+    # # --- show & color map (kept minimal; no scalar bar by default) ---
     # disp = Show(sph, render_view, "UniformGridRepresentation")
-    # logger.info("X1.")
     #
     # ColorBy(disp, ("POINTS", "phase_change_counter"))
     # disp.SetRepresentationType("Point Gaussian")
-    # disp.GaussianRadius = 3e-06
+    # disp.GaussianRadius = 4e-06
     # disp.RescaleTransferFunctionToDataRange(True, False)
     #
     # phase_change_counterLUT = GetColorTransferFunction("phase_change_counter")
     # HideScalarBarIfNotNeeded(phase_change_counterLUT, render_view)
     # _ = GetOpacityTransferFunction("phase_change_counter")
     # _ = GetTransferFunction2D("phase_change_counter")
-    #
-    # render_view.ResetCamera(False, 0.9)
-    #
-    # # sync animation (kept as in your original)
-    # anim = GetAnimationScene()
-    # anim.AnimationTime = 5.0
-    # anim.UpdateAnimationUsingDataTimeSteps()
 
     logger.info("SPH interpolator ready.")
     return sph
@@ -318,19 +310,22 @@ def main() -> None:
     sim_path = str(cfg.paths.sim_path)
     reset_session()
     iteration_number = 111469
-    path_to_solid_phase = f'/Users/ioandanielcraciun/LRZ/2025-10-07_13-38-50p960_lp-100p0_vx-0p8_j-5342381_p-0/cfg_2025-10-07_13-38-50p960_lp-100p0_vx-0p8_j-5342381_p-0/output/out_phase_1_SOLID_rank_0_{iteration_number}.vtk'
-    path_to_liquid_phase = f'/Users/ioandanielcraciun/LRZ/2025-10-07_13-38-50p960_lp-100p0_vx-0p8_j-5342381_p-0/cfg_2025-10-07_13-38-50p960_lp-100p0_vx-0p8_j-5342381_p-0/output/out_phase_2_LIQUID_rank_0_{iteration_number}.vtk'
-    path_to_gas_phase = f'/Users/ioandanielcraciun/LRZ/2025-10-07_13-38-50p960_lp-100p0_vx-0p8_j-5342381_p-0/cfg_2025-10-07_13-38-50p960_lp-100p0_vx-0p8_j-5342381_p-0/output/out_phase_3_GAS_rank_0_{iteration_number}.vtk'
-    path_to_wall_phase = f'/Users/ioandanielcraciun/LRZ/2025-10-07_13-38-50p960_lp-100p0_vx-0p8_j-5342381_p-0/cfg_2025-10-07_13-38-50p960_lp-100p0_vx-0p8_j-5342381_p-0/output/out_phase_4_WALL_rank_0_{iteration_number}.vtk'
+    path_to_solid_phase = f'/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/mhpc3d_200W_Ti64_Ar-3Y/output/out_phase_1_SOLID_rank_0_413.vtk'
+    path_to_liquid_phase = f'/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/mhpc3d_200W_Ti64_Ar-3Y/output/out_phase_2_LIQUID_rank_0_413.vtk'
+    path_to_gas_phase = f'/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/mhpc3d_200W_Ti64_Ar-3Y/output/out_phase_3_GAS_rank_0_413.vtk'
+    path_to_wall_phase = f'/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/mhpc3d_200W_Ti64_Ar-3Y/output/out_phase_4_WALL_rank_0_413.vtk'
 
-    _sph = prepare_sph_interpolator(sim_path,
-                                    iteration_number,
-                                    path_to_solid_phase,
-                                    path_to_liquid_phase,
-                                    path_to_gas_phase,
-                                    path_to_wall_phase
-                                    )
+    _sph = prepare_sph_interpolator(
+        iteration_number,
+        sim_path,
+        path_to_solid_phase,
+        path_to_liquid_phase,
+        path_to_gas_phase,
+        path_to_wall_phase
+    )
     logger.info("prepare_phase_interpolator.main() finished for %s", sim_path)
 
+
 # Auto-run in PV shell/batch if paraview.testing=True (or env override)
-run_main_if_testing(main)
+#
+# run_main_if_testing(main)
