@@ -37,21 +37,38 @@ log = get_logger(__name__)
 
 
 def deploy():
-    # 1) Gather global data
+    # 1) Gather data
 
-    # 2) Compute milestones positions
+    # 1.1) Global data
 
-    # 3) Prepare run data and dataset directories
+    # 1.2) Crawl
 
-    # 4) Check if it s a new or continuation run
 
-    # 5) Prepare paths
+    # 2) Prepare folder structure for storing the graphic data
 
-    # 6) Iterate through paths
 
-        # 6.1) Deploy suicidal code
+    # 3) Start iterating
 
-    # 7) Post processing steps
+        # 3.A) Solidified
+        # 3.A.1) Choose x_min, x_max, number-of-steps
+
+        # 3.A.2) Perform procedure
+
+        # 3.A.3) ONLY AT THE END: Delete all teh .vtk files (if required)
+
+        # 3.B) Melt
+        # 3.B.1) Choose between 'largest' or 'laser'
+
+        # 3.B.2) Compute the x position accordingly
+
+        # 3.B.3) Perform procedure (Delete .vtk file if required)
+
+
+    # 4) Create .gif
+
+
+    # 5) Write report and finish process
+
     return
 
 # Auto-run in PV shell/batch if paraview.testing=true in config.json
