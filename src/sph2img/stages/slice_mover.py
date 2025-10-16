@@ -79,11 +79,11 @@ def move_slices_origin(new_origin: Iterable[float]) -> None:
 
 def main() -> None:
     # Default target position; adjust as needed for your runs.
-    move_here = [0.000925, 0.0, 0.0]
+    move_here = [0.00012267366264850964, 0.0, 0.0]
     move_slices_origin(move_here)
     Render()
     log.info("slice_mover.main() finished.")
 
 
 # Auto-run in PV shell/batch if paraview.testing=True (or env override)
-# run_main_if_testing(main)
+run_main_if_testing(main)
