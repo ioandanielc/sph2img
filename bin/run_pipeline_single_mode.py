@@ -1,4 +1,4 @@
-# src/sph2img/paraview/run_all_pipeline.py
+# sph2img/bin/run_pipeline_single_mode.py
 #!/usr/bin/env python3
 """
 High-level driver for SPH -> slice coloring -> milestone screencapture -> GIFs.
@@ -71,14 +71,14 @@ def deploy():
     # 1) Gather data
     # 1.1) Global data
     cfg = get_config()
+    log.info("[config] Loaded configuration object.")
+
     paths = cfg.paths
     cap = cfg.capture
-
     fr = cfg.files_removal
     name = cfg.name
 
     run_name = name.run_name
-
     post_delete = fr.post_delete
 
     sim_path = paths.sim_path
@@ -86,10 +86,10 @@ def deploy():
     ss_dir = Path.joinpath(out_path, 'screenshots')
 
     log.info(f"[config] run_name={run_name}")
-    log.info(f"[config] sim_path={sim_path}")
-    log.info(f"[config] out_path={out_path}")
-    log.info(f"[config] ss_dir={ss_dir}")
-    log.info(f"[config] post_delete={post_delete}")
+    log.info(f"[config.paths] sim_path={sim_path}")
+    log.info(f"[config.paths] out_path={out_path}")
+    log.info(f"[config.paths] ss_dir={ss_dir}")
+    log.info(f"[config.files_removal] post_delete={post_delete}")
 
     power, vx = extract_power_and_vx(sim_path)
     log.info(f"[json] Extracted POWER={power}, VEL_X={vx} from {sim_path}")
@@ -111,15 +111,18 @@ def deploy():
     empty_out = cap.empty_out
 
     log.info(f"[capture] mode={mode}, eps={eps}, solid_cuts={solid_cuts}, x_side_offset={x_side_offset}, empty_out={empty_out}")
-    log.info(f"[capture] front=({front_w}x{front_h}), side=({side_w}x{side_h}), top=({top_w}x{top_h})")
+    log.info(f"[capture.sizes] front=({front_w}x{front_h}), side=({side_w}x{side_h}), top=({top_w}x{top_h})")
 
     # 1.2) Crawl
     log.info("[crawl] Crawling liquid-phase iterations…")
+    tcrawl = time.time()
     liquid_phase_indices, liquid_phase_iters, liquid_phase_order_to_iter, liquid_phase_paths, liquid_phase_iter_to_path = crawl_iterations(sim_path)
-    log.info(f"[crawl] Found {len(liquid_phase_indices)} liquid-phase indices.")
+    log.info(f"[crawl] Found {len(liquid_phase_indices)} liquid-phase indices (Δt={time.time()-tcrawl:.3f}s).")
     if liquid_phase_indices:
         log.info(f"[crawl] First iter={liquid_phase_iters[0]} @ {liquid_phase_paths[0]}")
         log.info(f"[crawl] Last  iter={liquid_phase_iters[-1]} @ {liquid_phase_paths[-1]}")
+    else:
+        log.info("[crawl] No liquid-phase iterations found. Downstream steps may no-op or fail depending on config.")
 
     # 2) Prepare folder structure for storing the graphic data
     output_folder = create_timestamped_folder(power, vx, ss_dir)
@@ -128,6 +131,8 @@ def deploy():
     # 3) Start iterating
     if mode == 'solid':
         log.info("[solidified] Starting SOLIDIFIED pipeline…")
+        tsolid = time.time()
+
         # 3.A) Solidified
         # 3.A.1) Get indices
         # If the config values are 0, take the first and last mid
@@ -135,26 +140,37 @@ def deploy():
         i_end = liquid_phase_indices[-1]
         log.info(f"[solidified] Using i_start={i_start}, i_end={i_end} (from crawled indices)")
 
+        log.info("[solidified] Computing x_start/x_end via build_iteration_largest_online…")
+        tx = time.time()
         x_start = build_iteration_largest_online(sim_path, liquid_phase_paths[i_start], liquid_phase_iters[i_start])
         x_end = build_iteration_largest_online(sim_path, liquid_phase_paths[i_end], liquid_phase_iters[i_end])
-        log.info(f"[solidified] Computed x_start={x_start:.6g}, x_end={x_end:.6g} from 'largest' metric")
+        log.info(f"[solidified] Computed x_start={x_start:.6g}, x_end={x_end:.6g} (Δt={time.time()-tx:.3f}s)")
 
+        log.info("[solidified] Building solidified map (cuts positions)…")
+        tmap = time.time()
         cuts_pos, lin_dict = build_solidified_map_online(
             liquid_phase_iters[-1],
             x_start,
             x_end,
             solid_cuts
         )
-        log.info(f"[solidified] Built solidified map with {len(cuts_pos)} cuts. Example (first 3): {cuts_pos[:3]}")
+        log.info(f"[solidified] Built solidified map with {len(cuts_pos)} cuts (Δt={time.time()-tmap:.3f}s). Example first 3: {cuts_pos[:3]}")
 
         # 3.A.2) Perform procedure
+        log.info("[solidified] Resolving phase file paths for final iteration…")
         solid_path, liquid_path, gas_path, wall_path = prepare_paths_from_sim_path(sim_path, liquid_phase_iters[-1])
-        log.info(f"[solidified] Paths → solid={solid_path}, liquid={liquid_path}, gas={gas_path}, wall={wall_path}")
+        log.info(f"[solidified.paths] solid={solid_path}")
+        log.info(f"[solidified.paths] liquid={liquid_path}")
+        log.info(f"[solidified.paths] gas={gas_path}")
+        log.info(f"[solidified.paths] wall={wall_path}")
+
         log.info("[solidified] Cleaning and resetting ParaView session…")
+        treset = time.time()
         clean_reset_paraview()
-        log.info("[solidified] ParaView session reset OK.")
+        log.info(f"[solidified] ParaView session reset OK (Δt={time.time()-treset:.3f}s).")
 
         log.info("[solidified] Creating SPH interpolator (hidden)…")
+        tsph = time.time()
         sph = prepare_sph_interpolator(
             liquid_phase_iters[-1],
             sim_path,
@@ -163,18 +179,21 @@ def deploy():
             gas_path,
             wall_path
         )
-        log.info("[solidified] SPH interpolator ready.")
+        log.info(f"[solidified] SPH interpolator ready (Δt={time.time()-tsph:.3f}s).")
 
         log.info("[solidified] Creating and coloring slices…")
+        tslices = time.time()
         create_and_colour_slices()
         Render()
-        log.info("[solidified] Slices created and shown (initial render complete).")
+        log.info(f"[solidified] Slices created and shown (initial render complete) (Δt={time.time()-tslices:.3f}s).")
+
+        log.info(f"[solidified] Iterating over {len(cuts_pos)} cut positions for screencapture…")
         for i, cut in enumerate(cuts_pos):
-            log.info(f"[solidified] Moving slices to x={cut:.6g} (entry {i+1}/{len(cuts_pos)})…")
+            log.info(f"[solidified] ({i+1}/{len(cuts_pos)}) Moving slices to x={cut:.6g}…")
             t_move = time.time()
             move_slices_origin([cut, 0.0, 0.0])
             Render()
-            log.info(f"[solidified] Rendered at x={cut:.6g} (Δt={time.time()-t_move:.3f}s). Capturing screenshots…")
+            log.info(f"[solidified] Rendered at x={cut:.6g} (Δt={time.time()-t_move:.3f}s). Now capturing screenshots…")
 
             screenshot_set(
                 run_name=run_name,
@@ -188,25 +207,46 @@ def deploy():
             )
             log.info(f"[solidified] Screenshots captured for entry {i} at x={cut:.6g}.")
 
+        log.info(f"[solidified] Done (Δt={time.time()-tsolid:.3f}s).")
+
     elif mode == 'laser' or mode == 'largest':
+        log.info(f"[melt] Starting MELT pipeline in mode='{mode}' (iterating {len(liquid_phase_iters)} snapshots)…")
+        tmelt = time.time()
         for i, iteration in enumerate(liquid_phase_iters):
+            tloop = time.time()
+            log.info(f"[melt] ({i+1}/{len(liquid_phase_iters)}) iteration={iteration}")
+
             # 3.B) Melt
             # 3.B.1) Compute the x position accordingly
             if mode == 'largest':
+                log.info("[melt] Computing x_s via build_iteration_largest_online(...)")
+                tx = time.time()
                 x_s = build_iteration_largest_online(sim_path,
                                                      liquid_phase_paths[i],
                                                      iteration,
                                                      DEFAULT_EPS)
+                log.info(f"[melt] x_s={x_s:.6g} (Δt={time.time()-tx:.3f}s)")
                 pass
             elif mode == 'laser':
-                x_s = build_iteration_largest_online(sim_path,
+                log.info("[melt] Computing x_s via build_iteration_laser_x_online(...)")
+                tx = time.time()
+                x_s = build_iteration_laser_x_online(sim_path,
                                                      iteration)
+                log.info(f"[melt] x_s={x_s:.6g} (Δt={time.time()-tx:.3f}s)")
                 pass
             else:
                 x_s = 0.0
+                log.info("[melt] Fallback x_s=0.0 (unexpected branch)")
+
             solid_path, liquid_path, gas_path, wall_path = prepare_paths_from_sim_path(sim_path, iteration)
+            log.info(f"[melt.paths] solid={solid_path}")
+            log.info(f"[melt.paths] liquid={liquid_path}")
+            log.info(f"[melt.paths] gas={gas_path}")
+            log.info(f"[melt.paths] wall={wall_path}")
 
             # 3.B.2) Perform procedure
+            log.info("[melt] Calling deploy_and_die(...) with computed x_position and output folder…")
+            tcall = time.time()
             deploy_and_die(
                 run_name=run_name,
                 iteration_number=iteration,
@@ -220,9 +260,12 @@ def deploy():
                 x_position=x_s,
                 delete_vtk=False,
             )
+            log.info(f"[melt] deploy_and_die finished (Δt={time.time()-tcall:.3f}s) — loop Δt={time.time()-tloop:.3f}s")
+
+        log.info(f"[melt] Completed MELT pipeline (Δt={time.time()-tmelt:.3f}s).")
+
     else:
         log.info(f"[mode] Unknown mode '{mode}'. No pipeline executed (config issue?).")
-
 
     # 4) Create .gif
     log.info("[gif] Creating GIFs from screenshots…")
@@ -232,9 +275,9 @@ def deploy():
 
     if mode in ['solid', 'laser', 'largest'] and post_delete:
         log.info(f"[cleanup] post_delete=True → deleting simulation directory: {out_path}")
+        tdel = time.time()
         shutil.rmtree(out_path)
-        log.info("[cleanup] Simulation directory deleted.")
-
+        log.info(f"[cleanup] Simulation directory deleted (Δt={time.time()-tdel:.3f}s).")
 
     # 5) Write report and finish process
     log.info(f"=== run_all_pipeline.deploy → FINISHED in {time.time()-t0:.3f}s ===")
@@ -242,4 +285,5 @@ def deploy():
 
 
 if __name__ == '__main__':
+    log.info("[__main__] Invoking deploy()…")
     deploy()
