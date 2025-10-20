@@ -34,12 +34,12 @@ from sph2img.utils.json_extractor import extract_power_and_vx
 
 from sph2img.milestones.milestones_solidified import build_solidified_map_online
 from sph2img.milestones.milestones_melt_laser_positions import build_iteration_laser_x_online
-from sph2img.milestones.milestones_melt_largest_delta import build_iteration_largest_online
+from sph2img.milestones.milestones_melt_largest_delta import build_iteration_largest_online, DEFAULT_EPS
 
 from sph2img.stages.sph_creator_single import prepare_sph_interpolator
 from sph2img.stages.slice_creator import create_and_colour_slices
 from sph2img.stages.slice_mover import move_slices_origin
-from sph2img.stages.instant_module import prepare_paths_from_sim_path, clean_reset_paraview
+from sph2img.stages.instant_module import prepare_paths_from_sim_path, clean_reset_paraview, deploy_and_die
 from sph2img.stages.screencapture_slice_composite import screenshot_set
 from sph2img.stages.gif_maker import gif_creator
 
@@ -140,11 +140,9 @@ def deploy():
         log.info(f"[solidified] Computed x_start={x_start:.6g}, x_end={x_end:.6g} from 'largest' metric")
 
         cuts_pos, lin_dict = build_solidified_map_online(
-            sim_path,
-            liquid_phase_paths[-1],
             liquid_phase_iters[-1],
-            x_start, x_end,
-            0,
+            x_start,
+            x_end,
             solid_cuts
         )
         log.info(f"[solidified] Built solidified map with {len(cuts_pos)} cuts. Example (first 3): {cuts_pos[:3]}")
@@ -190,40 +188,53 @@ def deploy():
             )
             log.info(f"[solidified] Screenshots captured for entry {i} at x={cut:.6g}.")
 
-        # 3.A.3) ONLY AT THE END: Delete all the .vtk files (if required)
-        if post_delete:
-            log.info(f"[cleanup] post_delete=True → deleting simulation directory: {out_path}")
-            shutil.rmtree(out_path)
-            log.info("[cleanup] Simulation directory deleted.")
-
     elif mode == 'laser' or mode == 'largest':
-        log.info(f"[melt] Starting MELT pipeline in mode='{mode}' (NOT YET COMPLETED).")
-        # 3.B) Melt
-        # 3.B.1) Choose between 'largest' or 'laser'
-        if mode == 'largest':
-            log.info("[melt] Would compute x-position using build_iteration_largest_online(...) for current iteration.")
-        else:
-            log.info("[melt] Would compute x-position using build_iteration_laser_x_online(...) for current iteration.")
+        for i, iteration in enumerate(liquid_phase_iters):
+            # 3.B) Melt
+            # 3.B.1) Compute the x position accordingly
+            if mode == 'largest':
+                x_s = build_iteration_largest_online(sim_path,
+                                                     liquid_phase_paths[i],
+                                                     iteration,
+                                                     DEFAULT_EPS)
+                pass
+            elif mode == 'laser':
+                x_s = build_iteration_largest_online(sim_path,
+                                                     iteration)
+                pass
+            else:
+                x_s = 0.0
+            solid_path, liquid_path, gas_path, wall_path = prepare_paths_from_sim_path(sim_path, iteration)
 
-        # 3.B.2) Compute the x position accordingly
-        log.info("[melt] TODO: compute x position and set slices accordingly.")
-
-        # 3.B.3) Perform procedure (Delete .vtk file if required)
-        log.info("[melt] TODO: perform SPH creation, slice coloring, movement, and screencapture.")
-        if post_delete:
-            log.info("[melt] post_delete=True → would delete simulation directory after screencapture.")
-
-        # keep exact behavior:
-        pass
-
+            # 3.B.2) Perform procedure
+            deploy_and_die(
+                run_name=run_name,
+                iteration_number=iteration,
+                snapshot_index=i,
+                path_to_simulation=sim_path,
+                path_to_solid_phase=solid_path,
+                path_to_liquid_phase=liquid_path,
+                path_to_gas_phase=gas_path,
+                path_to_wall_phase=wall_path,
+                path_to_output_dir=output_folder,
+                x_position=x_s,
+                delete_vtk=False,
+            )
     else:
         log.info(f"[mode] Unknown mode '{mode}'. No pipeline executed (config issue?).")
+
 
     # 4) Create .gif
     log.info("[gif] Creating GIFs from screenshots…")
     t_gif = time.time()
     gif_creator(output_folder)
     log.info(f"[gif] GIF creation finished (Δt={time.time()-t_gif:.3f}s). Output folder: {output_folder}")
+
+    if mode in ['solid', 'laser', 'largest'] and post_delete:
+        log.info(f"[cleanup] post_delete=True → deleting simulation directory: {out_path}")
+        shutil.rmtree(out_path)
+        log.info("[cleanup] Simulation directory deleted.")
+
 
     # 5) Write report and finish process
     log.info(f"=== run_all_pipeline.deploy → FINISHED in {time.time()-t0:.3f}s ===")

@@ -21,7 +21,6 @@ from sph2img.parsers import master_parser
 from typing import Dict
 
 def build_iteration_laser_x_online(path_to_simulation: str,
-                                   path_to_liquid_phase: str,  # unused (historical)
                                    iteration: int) -> float:
     """
     ONLINE variant: return the laser X position for a SINGLE `iteration`.

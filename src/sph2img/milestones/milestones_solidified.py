@@ -21,12 +21,9 @@ from sph2img.milestones.milestones_melt_largest_delta import DEFAULT_EPS
 
 
 def build_solidified_map_online(
-    path_to_simulation: str,
-    path_to_liquid_phase: str,
     iteration: int,
     x_start: float | None = None,
     x_end: float | None = None,
-    epsilon: float = DEFAULT_EPS,   # unused; kept for signature parity
     linspace_cuts: int | None = None,
 ) :
     """
