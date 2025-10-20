@@ -15,7 +15,7 @@
     "image_h": 256
   },
   "capture": {
-    "mode": "largest",
+    "mode": "solid",
     "eps": 0.001,
     "x_start": null,
     "x_end": null,

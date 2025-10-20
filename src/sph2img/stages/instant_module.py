@@ -131,7 +131,7 @@ def deploy_and_die(
         side_W=cap.side[0],   side_H=cap.side[1],
         top_W=cap.top[0],     top_H=cap.top[1],
         x_side_offset=cap.x_side_offset,
-        testing_folder=cap.empty_out
+        testing_folder=False
     )
     logger.info("[deploy] Screenshots saved (Δt=%.3fs).", time.time() - t_shot)
 

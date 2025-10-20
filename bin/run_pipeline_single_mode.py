@@ -50,14 +50,14 @@ from paraview.simple import (  # type: ignore
 log = get_logger(__name__)
 
 
-def create_timestamped_folder(power, vx, base_dir: str = ".") -> Path:
+def create_timestamped_folder(power, vx, mode, base_dir: str = ".") -> Path:
     """
     Create screenshots_YYYY-MM-DD_HH-MM-SS-MMM under base_dir.
     Uses the system's local time (no zoneinfo dependency).
     """
     now = datetime.fromtimestamp(time.time())  # local time
     millis = f"{int((now.microsecond) / 1000):03d}"
-    folder_name = f"screenshots_{now.strftime('%Y-%m-%d_%H-%M-%S')}-{millis}-power-{power}-vx-{vx}"
+    folder_name = f"screenshots_{now.strftime('%Y-%m-%d_%H-%M-%S')}-{millis}-mode-{mode.upper()}-power-{power}-vx-{vx}"
     path = Path(base_dir) / folder_name
     path.mkdir(parents=True, exist_ok=True)
     log.info(f"[create_timestamped_folder] Created output folder: {path}")
@@ -125,7 +125,7 @@ def deploy():
         log.info("[crawl] No liquid-phase iterations found. Downstream steps may no-op or fail depending on config.")
 
     # 2) Prepare folder structure for storing the graphic data
-    output_folder = create_timestamped_folder(power, vx, ss_dir)
+    output_folder = create_timestamped_folder(power, vx, mode, ss_dir)
     log.info(f"[paths] Output folder for screenshots: {output_folder}")
 
     # 3) Start iterating

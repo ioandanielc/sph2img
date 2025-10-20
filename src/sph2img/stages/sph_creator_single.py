@@ -1,5 +1,5 @@
 # sph2img/src/sph2img/stages/sph_creator_single.py
-# import sys
+import sys
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[3]  # repo root (sph2img/)
