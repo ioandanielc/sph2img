@@ -161,8 +161,6 @@ def main():
             delete_vtk=delete_vtk,
     )
 
-if run_main_if_testing:
-    main()
 
 
 

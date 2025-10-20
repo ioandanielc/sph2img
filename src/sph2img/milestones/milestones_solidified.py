@@ -17,9 +17,7 @@ from typing import Dict
 
 from sph2img.milestones.milestones_common import log, DEFAULT_SIM
 from sph2img.utils.crawl_iterations import crawl_iterations
-from sph2img.milestones.milestones_melt_largest_delta import (
-    DEFAULT_EPS,
-)
+from sph2img.milestones.milestones_melt_largest_delta import DEFAULT_EPS
 
 
 def build_solidified_map_online(

@@ -155,5 +155,3 @@ def main():
     print({i: (it, mid[it]) for i, it in enumerate(sorted(mid))})
     print({i: (it, laser[it]) for i, it in enumerate(sorted(laser))})
     print(solid_idx)
-
-main()
