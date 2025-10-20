@@ -1,4 +1,7 @@
+# sph2img/src/sph2img/stages/instant_module.py
+
 import sys
+import time
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[3]  # repo root (sph2img/)
@@ -26,16 +29,19 @@ logger = get_logger(__name__)
 
 def clean_reset_paraview() -> None:
     """Terminate the current ParaView session and start a new one."""
-    logger.info("Resetting ParaView session…")
+    logger.info("[pv] Resetting ParaView session…")
+    t0 = time.time()
     pxm = servermanager.ProxyManager()
     pxm.UnRegisterProxies()
     del pxm
     Disconnect()
     Connect()
-    logger.info("Session reset complete.")
+    logger.info("[pv] Session reset complete (Δt=%.3fs).", time.time() - t0)
 
 
 def prepare_paths_from_sim_path(path_to_simulation: str, snapshot_index: int):
+    logger.info("[paths] Preparing phase paths from sim=%s, snapshot=%s", path_to_simulation, snapshot_index)
+    t0 = time.time()
     path_to_vtk_snapshots = Path(path_to_simulation) / 'output'
 
     solid_name = f'out_phase_1_SOLID_rank_0_{snapshot_index}.vtk'
@@ -47,6 +53,12 @@ def prepare_paths_from_sim_path(path_to_simulation: str, snapshot_index: int):
     liquid_path = path_to_vtk_snapshots / liquid_name
     gas_path = path_to_vtk_snapshots / gas_name
     wall_path = path_to_vtk_snapshots / wall_name
+
+    logger.info("[paths] solid=%s", solid_path)
+    logger.info("[paths] liquid=%s", liquid_path)
+    logger.info("[paths] gas=%s", gas_path)
+    logger.info("[paths] wall=%s", wall_path)
+    logger.info("[paths] Phase paths prepared (Δt=%.3fs).", time.time() - t0)
 
     return solid_path, liquid_path, gas_path, wall_path
 
@@ -64,10 +76,25 @@ def deploy_and_die(
         x_position: int,
         delete_vtk: bool = False,
 ):
+    logger.info("[deploy] START run_name=%s iter=%s snap=%s x=%.6g delete_vtk=%s",
+                run_name, iteration_number, snapshot_index, x_position, delete_vtk)
+    logger.info("[deploy.paths] sim=%s", path_to_simulation)
+    logger.info("[deploy.paths] out_dir=%s", path_to_output_dir)
+    logger.info("[deploy.paths] solid=%s", path_to_solid_phase)
+    logger.info("[deploy.paths] liquid=%s", path_to_liquid_phase)
+    logger.info("[deploy.paths] gas=%s", path_to_gas_phase)
+    logger.info("[deploy.paths] wall=%s", path_to_wall_phase)
+
+    t_all = time.time()
+
     # 1) Prepare the ParaView environment by deleting everything from it
+    t_reset = time.time()
     clean_reset_paraview()
+    logger.info("[deploy] ParaView environment ready (Δt=%.3fs).", time.time() - t_reset)
 
     # 2) Create SPH (but hide)
+    logger.info("[deploy] Creating SPH interpolator…")
+    t_sph = time.time()
     sph = prepare_sph_interpolator(iteration_number,
                                    path_to_simulation,
                                    path_to_solid_phase,
@@ -75,13 +102,24 @@ def deploy_and_die(
                                    path_to_gas_phase,
                                    path_to_wall_phase
                                    )
+    logger.info("[deploy] SPH interpolator created (Δt=%.3fs).", time.time() - t_sph)
 
     # 3) Create Slices at the correct positions (and show)
+    logger.info("[deploy] Creating & coloring slices…")
+    t_slices = time.time()
     create_and_colour_slices()
     Render()
+    logger.info("[deploy] Slices created and rendered (Δt=%.3fs).", time.time() - t_slices)
+
+    logger.info("[deploy] Moving slices to x=%.6g", x_position)
+    t_move = time.time()
     move_slices_origin([x_position, 0.0, 0.0])
+    Render()
+    logger.info("[deploy] Slices moved & rendered (Δt=%.3fs).", time.time() - t_move)
 
     # 4) Take the screenshots and save them
+    logger.info("[deploy] Capturing screenshots…")
+    t_shot = time.time()
     cfg = get_config()
     cap = cfg.capture
 
@@ -95,49 +133,42 @@ def deploy_and_die(
         x_side_offset=cap.x_side_offset,
         testing_folder=cap.empty_out
     )
+    logger.info("[deploy] Screenshots saved (Δt=%.3fs).", time.time() - t_shot)
 
     # 5) Delete the .vtk files (if flag activated)
     if delete_vtk:
-        # Delete the files
-        logger.info(f"Deleting VTK SOLID phase from snapshot {snapshot_index} located at {path_to_solid_phase}")
+        logger.info("[deploy] Deleting VTK files for snapshot %s …", snapshot_index)
+        t_del = time.time()
         Path(path_to_solid_phase).unlink(missing_ok=True)
-        logger.info("* * *   D E L E T E D   * * *")
+        logger.info("[deploy] Deleted SOLID: %s", path_to_solid_phase)
 
-        logger.info(f"Deleting VTK LIQUID phase from snapshot {snapshot_index} located at {path_to_liquid_phase}")
         Path(path_to_liquid_phase).unlink(missing_ok=True)
-        logger.info("* * *   D E L E T E D   * * *")
+        logger.info("[deploy] Deleted LIQUID: %s", path_to_liquid_phase)
 
-        logger.info(f"Deleting VTK GAS phase from snapshot {snapshot_index} located at {path_to_gas_phase}")
         Path(path_to_gas_phase).unlink(missing_ok=True)
-        logger.info("* * *   D E L E T E D   * * *")
+        logger.info("[deploy] Deleted GAS: %s", path_to_gas_phase)
 
-        logger.info(f"Deleting VTK WALL phase from snapshot {snapshot_index} located at {path_to_wall_phase}")
         Path(path_to_wall_phase).unlink(missing_ok=True)
-        logger.info("* * *   D E L E T E D   * * *")
+        logger.info("[deploy] Deleted WALL: %s", path_to_wall_phase)
+        logger.info("[deploy] VTK deletions complete (Δt=%.3fs).", time.time() - t_del)
     else:
-        logger.info(
-            f"This is a MOCK deletion of the SOLID phase from snapshot {snapshot_index} located at {path_to_solid_phase}")
-        logger.info("* * *   M O C K   D E L E T E   * * *")
+        logger.info("[deploy] MOCK delete: SOLID %s", path_to_solid_phase)
+        logger.info("[deploy] MOCK delete: LIQUID %s", path_to_liquid_phase)
+        logger.info("[deploy] MOCK delete: GAS %s", path_to_gas_phase)
+        logger.info("[deploy] MOCK delete: WALL %s", path_to_wall_phase)
 
-        logger.info(
-            f"This is a MOCK deletion of the LIQUID phase from snapshot {snapshot_index} located at {path_to_liquid_phase}")
-        logger.info("* * *   M O C K   D E L E T E   * * *")
-
-        logger.info(
-            f"This is a MOCK deletion of the GAS phase from snapshot {snapshot_index} located at {path_to_gas_phase}")
-        logger.info("* * *   M O C K   D E L E T E   * * *")
-
-        logger.info(
-            f"This is a MOCK deletion of the WALL phase from snapshot {snapshot_index} located at {path_to_wall_phase}")
-        logger.info("* * *   M O C K   D E L E T E   * * *")
-
+    logger.info("[deploy] FINISHED (total Δt=%.3fs).", time.time() - t_all)
     return
 
 def main():
+    logger.info("[main] instant_module main() START")
     run_name = 'testing-instant-module'
     iteration_number = 0
     snapshot_index = 413
     path_to_simulation = '/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/mhpc3d_200W_Ti64_Ar-3Y'
+    logger.info("[main] run_name=%s iter=%s snap=%s sim=%s",
+                run_name, iteration_number, snapshot_index, path_to_simulation)
+
     paths = prepare_paths_from_sim_path(path_to_simulation, snapshot_index)
     path_to_solid_phase = paths[0]
     path_to_liquid_phase = paths[1]
@@ -146,6 +177,12 @@ def main():
     path_to_output_dir = '/Users/ioandanielcraciun/Python-Projects/sph2img/outputs/screenshots/testing_single_approach'
     x_position = 2e-3
     delete_vtk = False
+
+    logger.info("[main.paths] solid=%s", path_to_solid_phase)
+    logger.info("[main.paths] liquid=%s", path_to_liquid_phase)
+    logger.info("[main.paths] gas=%s", path_to_gas_phase)
+    logger.info("[main.paths] wall=%s", path_to_wall_phase)
+    logger.info("[main] out_dir=%s x=%.6g delete_vtk=%s", path_to_output_dir, x_position, delete_vtk)
 
     deploy_and_die(
             run_name=run_name,
@@ -160,8 +197,4 @@ def main():
             x_position=x_position,
             delete_vtk=delete_vtk,
     )
-
-
-
-
-
+    logger.info("[main] instant_module main() END")
