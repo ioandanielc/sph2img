@@ -1,8 +1,11 @@
 {
+  "name": {
+    "run_name": "ss"
+  },
   "paths": {
     "project_root": "/Users/ioandanielcraciun/Python-Projects/sph2img",
-    "sim_path": "/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/mhpc3d_200W_Ti64_Ar-3Y",
-    "out_dir":  "outputs/screenshots",
+    "sim_path": "/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/mhpc3d_200W_Ti64_Ar-3",
+    "out_dir":  "outputs/",
     "logs_dir": "logs",
     "cache_dir": ".cache"
   },
@@ -26,8 +29,11 @@
     "empty_out": true
   },
 
+  "files_removal": {
+    "post_delete": false
+  },
   "paraview": {
-    "testing": true,
+    "testing": false,
     "default_view": "RenderView"
   }
 }

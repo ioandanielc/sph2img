@@ -18,33 +18,43 @@ from sph2img.milestones.milestones_common import log, ordered_index_map, emit_or
 from sph2img.parsers import master_parser
 
 
-def build_iteration_laser_x(path_to_simulation: str) -> Dict[int, float]:
-    log.info("Parsing simulation at: %s", path_to_simulation)
-    (
-        _lp, _lv, _mat, _dens,
-        _dt, _iters, _pos_bounds, _time,
-        vtk_iterations,
-        laser_positions_at_vtk_iterations,
-        _domain, _smooth, _res,
-        _dmin, _dmax,
-    ) = master_parser.run(path_to_simulation)
+from typing import Dict
 
-    if not vtk_iterations or not laser_positions_at_vtk_iterations:
-        log.warning("No vtk_iterations or laser positions found.")
-        return {}
-    x_positions, _, _ = zip(*laser_positions_at_vtk_iterations)
-    return dict(zip(vtk_iterations, x_positions))
+def build_iteration_laser_x_online(path_to_simulation: str,
+                                   path_to_liquid_phase: str,  # unused (historical)
+                                   iteration: int) -> float:
+    """
+    ONLINE variant: return the laser X position for a SINGLE `iteration`.
 
+    Args kept for historical reasons: `path_to_liquid_phase`.
+    Falls back to 0.0 if the iteration isn't present or parsing fails.
+    """
+    try:
+        log.info("Parsing simulation at: %s (it=%d)", path_to_simulation, iteration)
+        (
+            _lp, _lv, _mat, _dens,
+            _dt, _iters, _pos_bounds, _time,
+            vtk_iterations,
+            laser_positions_at_vtk_iterations,
+            _domain, _smooth, _res,
+            _dmin, _dmax,
+        ) = master_parser.run(path_to_simulation)
 
-if __name__ == "__main__":
-    # CLI: python milestones_melt_laser_positions.py [SIM_PATH]
-    sim = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_SIM
-    if not sim:
-        log.error("No simulation path provided (DEFAULT_SIM missing)")
-        sys.exit(2)
+        if not vtk_iterations or not laser_positions_at_vtk_iterations:
+            log.warning("No vtk_iterations or laser positions found -> x=0.0")
+            return 0.0
 
-    it2x = build_iteration_laser_x(sim)
-    emit_ordered("x_position", ordered_index_map(it2x))
-    # compact stdout for tooling
-    ordered_keys = sorted(it2x)
-    print({i: (it, it2x[it]) for i, it in enumerate(ordered_keys)})
+        # Map iteration -> x
+        x_positions, _, _ = zip(*laser_positions_at_vtk_iterations)
+        it2x: Dict[int, float] = dict(zip(vtk_iterations, x_positions))
+
+        if iteration not in it2x:
+            log.warning("Requested it=%d not in parsed iterations -> x=0.0", iteration)
+            return 0.0
+
+        return float(it2x[iteration])
+
+    except Exception as e:
+        log.warning("build_iteration_laser_x_online failed for it=%d: %s -> x=0.0", iteration, e)
+        return 0.0
+
