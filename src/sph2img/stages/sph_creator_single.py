@@ -17,7 +17,7 @@ from typing import Dict, List
 from sph2img.utils.pvlog import get_logger
 from sph2img.config import get_config
 from sph2img.parsers import master_parser
-from sph2img.utils.pvhelpers import run_main_if_testing  # re-import safe; clarify intent
+from sph2img.utils.pvhelpers import run_main_if_testing, pv_view_name
 
 # ParaView heavy deps (runtime environment must provide them)
 from paraview import servermanager  # type: ignore
