@@ -1,0 +1,33 @@
+[project]
+name = "sph2img"
+version = "0.0.1"
+description = "SPH → ParaView slice coloring & screencapture pipeline"
+readme = "README.md"
+requires-python = ">=3.10"
+# Keep runtime deps empty here because ParaView is provided by pvpython/pvbatch.
+# You can add pure-Python deps if needed, e.g. numpy/Pillow, etc.
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sph2img*"]
+namespaces = false
+
+# Optional: include non-Python files if you ever add any
+[tool.setuptools.package-data]
+"sph2img" = ["py.typed"]
+
+# Optional dev extras (install with: pip install -e .[dev])
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.5.0",
+  "black>=24.0",
+  "mypy>=1.10",
+]
