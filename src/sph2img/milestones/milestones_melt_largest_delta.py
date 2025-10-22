@@ -1,6 +1,12 @@
 # src/sph2img/milestones/milestones_melt_largest_delta.py
 #!/usr/bin/env python3
 from __future__ import annotations
+# make repo/src importable no matter which interpreter runs this (python, pvpython, pvbatch)
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from sph2img.pvshim import enable_stubs; enable_stubs()
 
 import numpy as np
 

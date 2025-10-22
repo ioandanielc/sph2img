@@ -10,6 +10,12 @@ Steps:
   4) Run milestone-based screencapture in one of: 'laser' | 'largest' | 'solid'
   5) Build per-view GIFs from the screenshots
 """
+# make repo/src importable no matter which interpreter runs this (python, pvpython, pvbatch)
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from sph2img.pvshim import enable_stubs; enable_stubs()
 
 import time
 import shutil

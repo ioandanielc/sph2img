@@ -1,4 +1,10 @@
 # sph2img/src/sph2img/stages/instant_module.py
+# make repo/src importable no matter which interpreter runs this (python, pvpython, pvbatch)
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from sph2img.pvshim import enable_stubs; enable_stubs()
 
 import time
 from pathlib import Path

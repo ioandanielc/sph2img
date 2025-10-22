@@ -1,5 +1,11 @@
 # src/sph2img/paraview/slice_creator.py
 #!/usr/bin/env python3
+# make repo/src importable no matter which interpreter runs this (python, pvpython, pvbatch)
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from sph2img.pvshim import enable_stubs; enable_stubs()
 
 from typing import Set, List, Dict
 
