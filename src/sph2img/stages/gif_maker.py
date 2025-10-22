@@ -2,14 +2,7 @@
 #!/usr/bin/env python3
 
 # --- path bootstrap: make `sph2img` importable even when run as a script -----
-import sys
 from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parents[2]   # repo root (sph2img/)
-_SRC = _ROOT / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-# ---------------------------------------------------------------------------
 
 import os
 from collections import defaultdict, OrderedDict
@@ -19,7 +12,6 @@ from PIL import Image  # pip install pillow
 
 from sph2img.utils.pvlog import get_logger
 from sph2img.config import get_config
-from sph2img.utils.pvhelpers import run_main_if_testing
 
 log = get_logger(__name__)
 

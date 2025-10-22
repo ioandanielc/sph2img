@@ -1,18 +1,8 @@
 # sph2img/src/sph2img/stages/sph_creator_single.py
-import sys
-from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parents[3]  # repo root (sph2img/)
-_SRC = _ROOT / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-print(_SRC)
-# ---------------------------------------------------------------------------
 
 import re
 import time  # for lightweight timings
 from pathlib import Path
-from typing import Dict, List
 
 from sph2img.utils.pvlog import get_logger
 from sph2img.config import get_config

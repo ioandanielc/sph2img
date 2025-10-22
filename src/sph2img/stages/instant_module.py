@@ -1,19 +1,10 @@
 # sph2img/src/sph2img/stages/instant_module.py
 
-import sys
 import time
 from pathlib import Path
 
-_ROOT = Path(__file__).resolve().parents[3]  # repo root (sph2img/)
-_SRC = _ROOT / "src"
-
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-# ---------------------------------------------------------------------------
-
 from sph2img.utils.pvlog import get_logger
 from sph2img.config import get_config
-from sph2img.utils.pvhelpers import run_main_if_testing
 
 # pieces wired from your modules
 from sph2img.stages.sph_creator_single import prepare_sph_interpolator

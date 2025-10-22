@@ -2,23 +2,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-# --- path bootstrap: make `sph2img` importable even when run as a script -----
-import sys
-from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parents[2]   # repo root (sph2img/)
-_SRC = _ROOT / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-# ---------------------------------------------------------------------------
-
 import numpy as np
-from typing import Dict
-
-from sph2img.milestones.milestones_common import log, DEFAULT_SIM
-from sph2img.utils.crawl_iterations import crawl_iterations
-from sph2img.milestones.milestones_melt_largest_delta import DEFAULT_EPS
-
 
 def build_solidified_map_online(
     iteration: int,

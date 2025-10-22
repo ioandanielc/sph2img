@@ -1,19 +1,10 @@
 # src/sph2img/paraview/slice_hide_and_show.py
 #!/usr/bin/env python3
 
-# --- path bootstrap: make `sph2img` importable even when run as a script -----
-import sys
-from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parents[2]   # repo root (sph2img/)
-_SRC = _ROOT / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-# ---------------------------------------------------------------------------
 
 from typing import List
 from sph2img.utils.pvlog import get_logger
-from sph2img.utils.pvhelpers import run_main_if_testing, pv_view_name  # NEW
+from sph2img.utils.pvhelpers import pv_view_name
 
 # ParaView
 from paraview.simple import (  # type: ignore

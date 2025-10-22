@@ -2,23 +2,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-# --- path bootstrap: make `sph2img` importable even when run as a script -----
-import sys
-from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parents[2]   # repo root (sph2img/)
-_SRC = _ROOT / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-# ---------------------------------------------------------------------------
-
-import os
-from pathlib import Path
 import numpy as np
 
 # shared utils
 from sph2img.milestones.milestones_common import log, ordered_index_map, emit_ordered, DEFAULT_SIM
-from sph2img.utils.crawl_iterations import crawl_iterations
 
 # heavy deps (runtime environment must provide ParaView + SciPy)
 from paraview.simple import LegacyVTKReader  # type: ignore

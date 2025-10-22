@@ -1,19 +1,6 @@
 # src/sph2img/milestones/milestones_melt_laser_positions.py
 #!/usr/bin/env python3
 
-# milestones_melt_laser_positions.py
-import sys
-from pathlib import Path
-
-# --- path bootstrap: make `sph2img` importable even when run as a script -----
-_ROOT = Path(__file__).resolve().parents[2]   # repo root (sph2img/)
-_SRC = _ROOT / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-# ---------------------------------------------------------------------------
-
-from typing import Dict
-
 from sph2img.milestones.milestones_common import log, ordered_index_map, emit_ordered, DEFAULT_SIM
 from sph2img.parsers import master_parser
 

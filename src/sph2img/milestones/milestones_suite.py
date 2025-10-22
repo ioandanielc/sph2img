@@ -3,24 +3,18 @@
 
 # --- path bootstrap: make `sph2img` importable even when run as a script -----
 import sys
-from pathlib import Path
 
-_ROOT = Path(__file__).resolve().parents[2]   # repo root (sph2img/)
-_SRC = _ROOT / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-# ---------------------------------------------------------------------------
 
 from typing import Dict, Tuple, Optional
 
 from sph2img.milestones.milestones_common import log, ordered_index_map, emit_ordered, DEFAULT_SIM
-from sph2img.milestones.milestones_melt_largest_delta import build_iteration_mid_x, DEFAULT_EPS
+from sph2img.milestones.milestones_melt_largest_delta import build_iteration_largest_online, DEFAULT_EPS
 from sph2img.milestones.milestones_melt_laser_positions import build_iteration_laser_x
 from sph2img.milestones.milestones_solidified import build_solidified_map
 
 
 def run_mid(sim_path: str = DEFAULT_SIM, epsilon: float = DEFAULT_EPS) -> Dict[int, float]:
-    it2mid = build_iteration_mid_x(sim_path, epsilon=epsilon)
+    it2mid = build_iteration_largest_online(sim_path, epsilon=epsilon)
     emit_ordered("mid_x", ordered_index_map(it2mid))
     return it2mid
 

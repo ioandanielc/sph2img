@@ -1,16 +1,6 @@
 # src/sph2img/paraview/slice_creator.py
 #!/usr/bin/env python3
 
-# --- path bootstrap: make `sph2img` importable even when run as a script -----
-import sys
-from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parents[2]   # repo root (sph2img/)
-_SRC = _ROOT / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-# ---------------------------------------------------------------------------
-
 from typing import Set, List, Dict
 
 from sph2img.utils.pvlog import get_logger
