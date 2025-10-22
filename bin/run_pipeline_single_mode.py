@@ -11,7 +11,6 @@ Steps:
   5) Build per-view GIFs from the screenshots
 """
 
-import sys
 import time
 import shutil
 from pathlib import Path
