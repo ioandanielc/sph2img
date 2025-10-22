@@ -10,17 +10,8 @@ Steps:
   4) Run milestone-based screencapture in one of: 'laser' | 'largest' | 'solid'
   5) Build per-view GIFs from the screenshots
 """
-
-# --- path bootstrap: make `sph2img` importable even when run as a script -----
 import sys
 from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parents[1]  # repo root (sph2img/)
-_SRC = _ROOT / "src"
-
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-# ---------------------------------------------------------------------------
 
 from sph2img.utils.pvlog import get_logger
 from sph2img.config import get_config

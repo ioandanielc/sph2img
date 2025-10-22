@@ -11,24 +11,15 @@ Steps:
   5) Build per-view GIFs from the screenshots
 """
 
-# --- path bootstrap: make `sph2img` importable even when run as a script -----
 import sys
 import time
 import shutil
 from pathlib import Path
 
-_ROOT = Path(__file__).resolve().parents[1]  # repo root (sph2img/)
-_SRC = _ROOT / "src"
-
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-# ---------------------------------------------------------------------------
-
 from datetime import datetime
 
 from sph2img.config import get_config
 from sph2img.utils.pvlog import get_logger
-from sph2img.utils.pvhelpers import run_main_if_testing
 from sph2img.utils.crawl_iterations import crawl_iterations
 from sph2img.utils.json_extractor import extract_power_and_vx
 
