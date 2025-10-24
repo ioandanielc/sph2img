@@ -9,6 +9,9 @@ Steps:
   3) Create & color slice planes
   4) Run milestone-based screencapture in one of: 'laser' | 'largest' | 'solid'
   5) Build per-view GIFs from the screenshots
+
+Return:
+  Path to the created screenshots folder (pathlib.Path)
 """
 # make repo/src importable no matter which interpreter runs this (python, pvpython, pvbatch)
 import sys
@@ -19,8 +22,6 @@ from sph2img.pvshim import enable_stubs; enable_stubs()
 
 import time
 import shutil
-from pathlib import Path
-
 from datetime import datetime
 
 from sph2img.config import get_config
@@ -60,7 +61,10 @@ def create_timestamped_folder(power, vx, mode, base_dir: str = ".") -> Path:
     return path
 
 
-def deploy():
+def deploy() -> Path:
+    """
+    Run the single-mode pipeline and return the screenshots output folder path.
+    """
     t0 = time.time()
     log.info("=== run_all_pipeline.deploy → START ===")
 
@@ -79,7 +83,7 @@ def deploy():
 
     sim_path = paths.sim_path
     out_path = paths.out_dir
-    ss_dir = Path.joinpath(out_path, 'screenshots')
+    ss_dir = Path(out_path) / 'screenshots'
 
     log.info(f"[config] run_name={run_name}")
     log.info(f"[config.paths] sim_path={sim_path}")
@@ -222,14 +226,12 @@ def deploy():
                                                      iteration,
                                                      DEFAULT_EPS)
                 log.info(f"[melt] x_s={x_s:.6g} (Δt={time.time()-tx:.3f}s)")
-                pass
             elif mode == 'laser':
                 log.info("[melt] Computing x_s via build_iteration_laser_x_online(...)")
                 tx = time.time()
                 x_s = build_iteration_laser_x_online(sim_path,
                                                      iteration)
                 log.info(f"[melt] x_s={x_s:.6g} (Δt={time.time()-tx:.3f}s)")
-                pass
             else:
                 x_s = 0.0
                 log.info("[melt] Fallback x_s=0.0 (unexpected branch)")
@@ -277,9 +279,11 @@ def deploy():
 
     # 5) Write report and finish process
     log.info(f"=== run_all_pipeline.deploy → FINISHED in {time.time()-t0:.3f}s ===")
-    return
+    return output_folder
 
 
 if __name__ == '__main__':
     log.info("[__main__] Invoking deploy()…")
-    deploy()
+    out_dir = deploy()
+    # also print to stdout so shell callers can capture it easily
+    print(out_dir)
