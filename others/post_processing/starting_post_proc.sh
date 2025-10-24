@@ -1,5 +1,5 @@
 # --- fill these with your actual paths/values ---
-SIM="/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/mhpc3d_200W_Ti64_Ar-3"
+SIM="/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/skimmed_sims/cfg_2025-10-07_17-08-02p032_lp-100p0_vx-0p4_j-5342386_p-0"
 SPH2IMG_SCRIPT="/Users/ioandanielcraciun/Python-Projects/sph2img/bin/run_pipeline_single_mode.py"
 STAT_SCRIPT="/Users/ioandanielcraciun/Python-Projects/aersph_stat_checker/src/aersph_stat_checker/stat_tester.py"
 

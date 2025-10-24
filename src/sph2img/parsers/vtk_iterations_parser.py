@@ -49,10 +49,10 @@ def get_vtk_iterations(path_to_simulation: str) -> List[int]:
         logger.error("No files found in %s", out_dir)
         raise FileNotFoundError(f"No files found in {out_dir}")
 
-    non_vtk = [p.name for p in files if p.suffix.lower() != ".vtk"]
-    if non_vtk:
-        logger.error("Not only .vtk inside 'output' folder. Offenders: %s", ", ".join(non_vtk))
-        raise RuntimeError("Not only .vtk inside 'output' folder.")
+    # non_vtk = [p.name for p in files if p.suffix.lower() != ".vtk"]
+    # if non_vtk:
+    #     logger.error("Not only .vtk inside 'output' folder. Offenders: %s", ", ".join(non_vtk))
+    #     raise RuntimeError("Not only .vtk inside 'output' folder.")
 
     # Group by phase via substring match
     grouped = {k: [p for p in files if k in p.name] for k in _PHASE_KEYS}
