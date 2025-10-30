@@ -1,0 +1,9 @@
+{
+  "paths": {
+    "abs_root": "/Users/ioandanielcraciun",
+    "sim_path": "/Users/ioandanielcraciun/.../cfg_.../output",
+    "out_dir":  "outputs/",
+    "logs_dir": "logs",
+    "cache_dir": ".cache"
+  }
+}

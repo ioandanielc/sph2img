@@ -51,3 +51,10 @@ simulations/
 
 # ---- Local overrides (keep config.json tracked) ----
 config.local.json
+
+# per-host overrides (untracked)
+config/host-*.json
+config/config.local.json
+
+# legacy local env
+.env

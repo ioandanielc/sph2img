@@ -1,0 +1,32 @@
+{
+  "name": { "run_name": "ss" },
+
+  "paths": {
+    "abs_root": "~",
+    "sim_path": "simulations/skimmed_sims/cfg_2025-10-07_17-08-02p032_lp-100p0_vx-0p4_j-5342386_p-0",
+    "out_dir":  "outputs/",
+    "logs_dir": "logs",
+    "cache_dir": ".cache"
+  },
+
+  "render": { "offscreen": true, "image_w": 256, "image_h": 256 },
+
+  "capture": {
+    "mode": "largest",
+    "eps": 0.001,
+    "x_start": null,
+    "x_end": null,
+    "solid_cuts": 30,
+
+    "front_w": 256, "front_h": 256,
+    "side_w":  512, "side_h":  256,
+    "top_w":   256, "top_h":   256,
+
+    "x_side_offset": 0.00007,
+    "empty_out": true
+  },
+
+  "files_removal": { "post_delete": false },
+
+  "paraview": { "testing": false, "default_view": "RenderView" }
+}

@@ -1,198 +1,207 @@
 # src/sph2img/config.py
 from __future__ import annotations
-from dataclasses import dataclass, field
-from functools import lru_cache
+import os, json
+from dataclasses import dataclass
 from pathlib import Path
-import json, os
-from typing import Optional
+from typing import Any, Mapping, MutableMapping
 
-# ---------------- Data models ----------------
-@dataclass(frozen=True)
+from .selectors import auto_host_config
+
+# ---------------- dataclasses (match your schema) ----------------
+@dataclass
+class Name:
+    run_name: str
+
+@dataclass
 class Paths:
-    project_root: Path   # ABS only, authoritative
-    sim_path: Path       # ABS ok or REL→resolved under project_root
-    out_dir: Path        # ABS ok or REL→resolved under project_root
-    logs_dir: Path       # RELATIVE ONLY → resolved under project_root
-    cache_dir: Path      # RELATIVE ONLY → resolved under project_root
+    abs_root: Path
+    project_root: Path
+    sim_path: Path
+    out_dir: Path
+    logs_dir: Path
+    cache_dir: Path
 
-    # Back-compat for code using paths.ss_dir + '/screenshots'
-    @property
-    def ss_dir(self) -> str:
-        # Return string so existing string concatenations keep working
-        return str(self.out_dir)
-
-@dataclass(frozen=True)
+@dataclass
 class Render:
     offscreen: bool
     image_w: int
     image_h: int
 
-@dataclass(frozen=True)
-class ParaView:
-    testing: bool = True
-    default_view: str = "RenderView"
-
-@dataclass(frozen=True)
+@dataclass
 class Capture:
     mode: str
     eps: float
-    x_start: Optional[float]
-    x_end: Optional[float]
+    x_start: float | None
+    x_end: float | None
     solid_cuts: int
-
-    # keep individual names EXACTLY (no renames)
-    front_w: int
-    front_h: int
-    side_w: int
-    side_h: int
-    top_w: int
-    top_h: int
-
+    front_w: int; front_h: int
+    side_w: int;  side_h: int
+    top_w: int;   top_h: int
     x_side_offset: float
     empty_out: bool
 
-    # convenience (non-breaking): tuple views
-    @property
-    def front(self) -> tuple[int, int]:
-        return (self.front_w, self.front_h)
-
-    @property
-    def side(self) -> tuple[int, int]:
-        return (self.side_w, self.side_h)
-
-    @property
-    def top(self) -> tuple[int, int]:
-        return (self.top_w, self.top_h)
-
-@dataclass(frozen=True)
-class Name:
-    run_name: str
-
-@dataclass(frozen=True)
+@dataclass
 class FilesRemoval:
     post_delete: bool
 
-@dataclass(frozen=True)
+@dataclass
+class ParaView:
+    testing: bool
+    default_view: str
+
+@dataclass
 class Config:
     name: Name
     paths: Paths
     render: Render
     capture: Capture
     files_removal: FilesRemoval
-    paraview: ParaView = field(default_factory=ParaView)
+    paraview: ParaView
 
-# ---------------- Helpers ----------------
-def _read_json(path: Path) -> dict:
-    try:
-        return json.loads(path.read_text())
-    except Exception:
-        return {}
+# ---------------- helpers ----------------
+def _read_json(p: Path | None) -> dict:
+    return json.loads(p.read_text()) if p and p.exists() else {}
 
-def _expand(s: str | None) -> str | None:
-    return os.path.expandvars(s) if isinstance(s, str) else s
+def _deep_update(dst: MutableMapping[str, Any], src: Mapping[str, Any] | None) -> MutableMapping[str, Any]:
+    if not src:
+        return dst
+    for k, v in src.items():
+        if isinstance(v, dict) and isinstance(dst.get(k), dict):
+            _deep_update(dst[k], v)
+        else:
+            dst[k] = v
+    return dst
 
-def _resolve_rel(base: Path, value: str | None, default_rel: str) -> Path:
-    """Resolve a relative string under 'base'. Absolute values are forbidden here."""
-    v = _expand(value)
-    if not v:
-        return (base / default_rel).resolve()
-    p = Path(v).expanduser()
-    if p.is_absolute():
-        raise ValueError(f"Absolute paths are not allowed for this key: {p}")
-    return (base / p).resolve()
+def _ensure_and_normalize(cfg: dict, repo_root: Path) -> None:
+    """
+    Guarantees:
+      - paths.abs_root (ABS; from ABS_ROOT env, or 'abs_root', or derived from legacy project_root, or HOME)
+      - paths.project_root := abs_root / 'sph2img'   (enforced)
+      - logs_dir, cache_dir treated as REL in input; stored back as ABS
+      - sim_path, out_dir may be REL or ABS in input; stored back as ABS
+    """
+    cfg.setdefault("paths", {})
+    p = cfg["paths"]
 
-def _resolve_rel_or_abs(base: Path, value: str | None, default_rel: str) -> Path:
-    """For sim_path/out_dir: accept ABS or REL (REL resolves under base)."""
-    v = _expand(value)
-    if not v:
-        return (base / default_rel).resolve()
-    p = Path(v).expanduser()
-    return p.resolve() if p.is_absolute() else (base / p).resolve()
+    # expand ~ and $VARS on all strings under 'paths'
+    for k, v in list(p.items()):
+        if isinstance(v, str):
+            p[k] = os.path.expanduser(os.path.expandvars(v))
 
-# ---------------- Public API ----------------
-@lru_cache(maxsize=1)
-def get_config() -> Config:
-    # Locate config.json relative to this file (repo root two levels up),
-    # but paths.project_root in the file remains authoritative.
-    code_root = Path(__file__).resolve().parents[2]
-    cfg = _read_json(code_root / "config.json")
+    # 1) abs_root: priority ENV > config.abs_root > legacy(project_root parent) > HOME
+    abs_root_str = os.getenv("ABS_ROOT", p.get("abs_root", "")).strip()
+    if abs_root_str:
+        abs_root = Path(abs_root_str).expanduser().resolve()
+    else:
+        pr_legacy = p.get("project_root", "").strip()
+        abs_root = (Path(pr_legacy).expanduser().resolve().parent
+                    if pr_legacy else Path("~").expanduser().resolve())
 
-    name_cfg  = cfg.get("name", {}) or {}
-    paths_cfg = cfg.get("paths", {}) or {}
-    render_cfg= cfg.get("render", {}) or {}
-    cap_cfg   = cfg.get("capture", {}) or {}
-    fr_cfg    = cfg.get("files_removal", {}) or {}
-    pv_cfg    = cfg.get("paraview", {}) or {}
+    if not abs_root.is_absolute():
+        raise ValueError("paths.abs_root must resolve to an absolute path. Set ABS_ROOT or add 'abs_root'.")
 
-    # name
-    name = Name(run_name=str(name_cfg.get("run_name", "run")))
+    # 2) Enforce project_root rule
+    project_root = (abs_root / "sph2img").resolve()
 
-    # paths
-    pr = _expand(paths_cfg.get("project_root"))
-    if not pr:
-        raise ValueError("config.json: paths.project_root is required and must be an absolute path.")
-    project_root = Path(pr).expanduser().resolve()
-    if not project_root.is_absolute():
-        raise ValueError(f"config.json: paths.project_root must be absolute, got: {pr}")
+    # 3) required REL keys (provide defaults if missing)
+    logs_rel  = p.get("logs_dir", "logs")
+    cache_rel = p.get("cache_dir", ".cache")
+    if Path(logs_rel).is_absolute():
+        raise ValueError("paths.logs_dir must be relative to project_root.")
+    if Path(cache_rel).is_absolute():
+        raise ValueError("paths.cache_dir must be relative to project_root.")
 
-    sim_path = _resolve_rel_or_abs(project_root, paths_cfg.get("sim_path"), "simulations/mhpc3d_200W_Ti64_Ar-3")
-    out_dir  = _resolve_rel_or_abs(project_root, paths_cfg.get("out_dir"),  "outputs/")
-    logs_dir = _resolve_rel(project_root,       paths_cfg.get("logs_dir"),  "logs")
-    cache_dir= _resolve_rel(project_root,       paths_cfg.get("cache_dir"), ".cache")
+    # 4) sim_path & out_dir may be REL or ABS (default out_dir if missing)
+    sim_raw = p.get("sim_path", "")
+    out_raw = p.get("out_dir", "outputs/")
 
-    # ensure writable dirs exist
-    for d in (out_dir, logs_dir, cache_dir):
-        d.mkdir(parents=True, exist_ok=True)
+    sim_path = Path(sim_raw)
+    out_dir  = Path(out_raw)
+    sim_path = (sim_path if sim_path.is_absolute() else (project_root / sim_path)).resolve()
+    out_dir  = (out_dir  if out_dir.is_absolute()  else (project_root / out_dir)).resolve()
 
-    paths = Paths(
-        project_root=project_root,
-        sim_path=sim_path,
-        out_dir=out_dir,
-        logs_dir=logs_dir,
-        cache_dir=cache_dir
-    )
+    # 5) materialize absolute strings
+    p["abs_root"]     = str(abs_root)
+    p["project_root"] = str(project_root)
+    p["sim_path"]     = str(sim_path)
+    p["out_dir"]      = str(out_dir)
+    p["logs_dir"]     = str((project_root / logs_rel).resolve())
+    p["cache_dir"]    = str((project_root / cache_rel).resolve())
 
-    # render (keep names as in JSON)
-    render = Render(
-        offscreen=bool(render_cfg.get("offscreen", True)),
-        image_w=int(render_cfg.get("image_w", 256)),
-        image_h=int(render_cfg.get("image_h", 256)),
-    )
+def _to_dc(cfg: dict) -> Config:
+    # ensure top-level sections exist (defensive)
+    cfg.setdefault("name", {"run_name": "ss"})
+    cfg.setdefault("paths", {})
+    cfg.setdefault("render", {"offscreen": True, "image_w": 256, "image_h": 256})
+    cfg.setdefault("capture", {
+        "mode": "largest", "eps": 0.001, "x_start": None, "x_end": None, "solid_cuts": 30,
+        "front_w": 256, "front_h": 256, "side_w": 512, "side_h": 256, "top_w": 256, "top_h": 256,
+        "x_side_offset": 0.00007, "empty_out": True
+    })
+    cfg.setdefault("files_removal", {"post_delete": False})
+    cfg.setdefault("paraview", {"testing": False, "default_view": "RenderView"})
 
-    # capture (keep EXACT field names)
-    capture = Capture(
-        mode=str(cap_cfg.get("mode", "largest")),
-        eps=float(cap_cfg.get("eps", 1e-3)),
-        x_start=(float(cap_cfg["x_start"]) if cap_cfg.get("x_start") is not None else None),
-        x_end=(float(cap_cfg["x_end"]) if cap_cfg.get("x_end") is not None else None),
-        solid_cuts=int(cap_cfg.get("solid_cuts", 30)),
-        front_w=int(cap_cfg.get("front_w", 256)),
-        front_h=int(cap_cfg.get("front_h", 256)),
-        side_w=int(cap_cfg.get("side_w", 256)),
-        side_h=int(cap_cfg.get("side_h", 256)),
-        top_w=int(cap_cfg.get("top_w", 256)),
-        top_h=int(cap_cfg.get("top_h", 256)),
-        x_side_offset=float(cap_cfg.get("x_side_offset", 7e-5)),
-        empty_out=bool(cap_cfg.get("empty_out", True)),
-    )
+    n = cfg["name"]; p = cfg["paths"]; r = cfg["render"]; c = cfg["capture"]
+    fr = cfg["files_removal"]; pv = cfg["paraview"]
 
-    files_removal = FilesRemoval(
-        post_delete=bool(fr_cfg.get("post_delete", False))
-    )
-
-    paraview = ParaView(
-        testing=bool(pv_cfg.get("testing", True)),
-        default_view=str(pv_cfg.get("default_view", "RenderView")),
-    )
+    # final guard: compute project_root if missing (shouldn’t happen after normalize)
+    if "project_root" not in p:
+        abs_root = Path(p.get("abs_root", Path("~").expanduser()))
+        p["project_root"] = str((abs_root / "sph2img").resolve())
 
     return Config(
-        name=name,
-        paths=paths,
-        render=render,
-        capture=capture,
-        files_removal=files_removal,
-        paraview=paraview
+        name=Name(**n),
+        paths=Paths(
+            abs_root=Path(p["abs_root"]),
+            project_root=Path(p["project_root"]),
+            sim_path=Path(p["sim_path"]),
+            out_dir=Path(p["out_dir"]),
+            logs_dir=Path(p["logs_dir"]),
+            cache_dir=Path(p["cache_dir"]),
+        ),
+        render=Render(**r),
+        capture=Capture(
+            mode=c["mode"], eps=c["eps"],
+            x_start=c.get("x_start"), x_end=c.get("x_end"),
+            solid_cuts=c["solid_cuts"],
+            front_w=c["front_w"], front_h=c["front_h"],
+            side_w=c["side_w"],  side_h=c["side_h"],
+            top_w=c["top_w"],    top_h=c["top_h"],
+            x_side_offset=c["x_side_offset"], empty_out=c["empty_out"],
+        ),
+        files_removal=FilesRemoval(**fr),
+        paraview=ParaView(**pv),
     )
 
-def reload_config_cache() -> None:
-    get_config.cache_clear()
+# ---------------- main API ----------------
+def get_config(config_path: str | None = None) -> Config:
+    repo_root = Path(__file__).resolve().parents[2]
+    cfg_dir   = repo_root / "config"
+
+    merged: dict = {}
+
+    # BASE: prefer config/defaults.json, else legacy root config.json
+    if (cfg_dir / "defaults.json").exists():
+        merged = _deep_update(merged, _read_json(cfg_dir / "defaults.json"))
+    elif (repo_root / "config.json").exists():
+        merged = _deep_update(merged, _read_json(repo_root / "config.json"))
+    else:
+        raise RuntimeError("No base config found. Add config/defaults.json or keep root config.json.")
+
+    # host override (JSON), if any
+    host_file = auto_host_config(cfg_dir)
+    if host_file:
+        merged = _deep_update(merged, _read_json(host_file))
+
+    # ENV override (JSON)
+    env_p = os.getenv("S2I_CONFIG")
+    if env_p:
+        merged = _deep_update(merged, _read_json(Path(env_p)))
+
+    # CLI override (JSON)
+    if config_path:
+        merged = _deep_update(merged, _read_json(Path(config_path)))
+
+    # normalize & return dataclasses
+    _ensure_and_normalize(merged, repo_root)
+    return _to_dc(merged)

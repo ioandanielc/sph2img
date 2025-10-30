@@ -124,9 +124,9 @@ def deploy_and_die(
         run_name=run_name,
         entry_no=iteration_number,
         out_dir=path_to_output_dir,
-        front_W=cap.front[0], front_H=cap.front[1],
-        side_W=cap.side[0],   side_H=cap.side[1],
-        top_W=cap.top[0],     top_H=cap.top[1],
+        front_W=cap.front_w, front_H=cap.front_h,
+        side_W=cap.side_w,   side_H=cap.side_h,
+        top_W=cap.top_w,     top_H=cap.top_h,
         x_side_offset=cap.x_side_offset,
         testing_folder=False
     )
