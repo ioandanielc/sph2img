@@ -3,8 +3,8 @@
     "run_name": "ss"
   },
   "paths": {
-    "project_root": "/Users/ioandanielcraciun/Python-Projects/sph2img",
-    "sim_path": "/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/skimmed_sims/cfg_2025-10-07_17-08-02p032_lp-100p0_vx-0p4_j-5342386_p-0",
+    "project_root": "/dss/dssfs04/lwp-dss-0002/pn36ni/pn36ni-dss-0000/ge57gon2/projects/sph2img",
+    "sim_path":"/dss/dssfs04/lwp-dss-0002/pn36ni/pn36ni-dss-0000/ge57gon2/projects/aersph_enroot_automation/runs_results/2025-10-07_18-06-32p970_lp-200p0_vx-0p4_j-5342389_p-0/cfg_2025-10-07_18-06-32p970_lp-200p0_vx-0p4_j-5342389_p-0", 
     "out_dir":  "outputs/",
     "logs_dir": "logs",
     "cache_dir": ".cache"
@@ -15,7 +15,7 @@
     "image_h": 256
   },
   "capture": {
-    "mode": "laser",
+    "mode": "largest",
     "eps": 0.001,
     "x_start": null,
     "x_end": null,
