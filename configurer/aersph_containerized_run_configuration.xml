@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <domain>
+    <dimensions>3</dimensions>
+    <domain_min>-0.000212 -0.000212 -0.000312</domain_min>
+    <domain_max>0.001212 0.000212 0.000112</domain_max>
+    <gravity>
+      <acceleration>0.0 0.0 -9.81</acceleration>
+      <damping_time>0.0</damping_time>
+    </gravity>
+    <ambient_pressure>101325.0</ambient_pressure>
+    <ambient_temperature>300.0</ambient_temperature>
+  </domain>
+
+  <reference_values>
+    <length>8e-05</length>
+    <velocity>5.0</velocity>
+  </reference_values>
+
+  <sph>
+    <particle_spacing>4e-06</particle_spacing>
+  </sph>
+
+  <phases>
+    <substrate>
+      <type>solid</type>
+      <material>TI64</material>
+      <initial_conditions>
+        <density>4400.0</density>
+        <temperature>300.0</temperature>
+      </initial_conditions>
+      <eos>
+        <speed_of_sound>50.0</speed_of_sound>
+      </eos>
+    </substrate>
+
+    <melt>
+      <type>liquid</type>
+      <material>TI64</material>
+      <initial_conditions>
+        <density>4400.0</density>
+        <velocity>0.0 0.0 0.0</velocity>
+        <temperature>300.0</temperature>
+      </initial_conditions>
+      <eos>
+        <speed_of_sound>50.0</speed_of_sound>
+      </eos>
+    </melt>
+
+    <gas>
+      <type>gas</type>
+      <material>REAL_AR</material>
+      <initial_conditions>
+        <density>1.6116</density>
+        <velocity>0.0 0.0 0.0</velocity>
+        <temperature>300.0</temperature>
+      </initial_conditions>
+      <eos>
+        <speed_of_sound>50.0</speed_of_sound>
+      </eos>
+    </gas>
+
+    <isothermal_walls>
+      <type>wall</type>
+      <thermal_boundary_condition>
+        <type>temperature</type>
+        <value>300.0</value>
+      </thermal_boundary_condition>
+    </isothermal_walls>
+  </phases>
+
+  <phase_interfaces>
+    <melt_gas_interface>
+      <phases>melt gas</phases>
+      <model>TI64_AIR</model>
+    </melt_gas_interface>
+  </phase_interfaces>
+
+  <phase_changes>
+    <melt_substrate_phase_change>melt substrate</melt_substrate_phase_change>
+  </phase_changes>
+
+  <geometry>
+    <input_bodies>
+      <frame>
+        <phase>isothermal_walls</phase>
+        <width>1.2e-05</width>
+        <min_point>-0.0002 -0.0002 -0.0003</min_point>
+        <max_point>0.0012 0.0002 0.0001</max_point>
+      </frame>
+
+      <!-- Duplicate <box> entries intentionally: resolved via box[name=...] in the configurer -->
+      <box>
+        <phase>substrate</phase>
+        <min_point>-0.0002 -0.0002 -0.0003</min_point>
+        <max_point>0.0012 0.0002 0.0</max_point>
+      </box>
+
+      <box>
+        <phase>gas</phase>
+        <min_point>-0.0002 -0.0002 0.0</min_point>
+        <max_point>0.0012 0.0002 0.0001</max_point>
+      </box>
+
+    </input_bodies>
+  </geometry>
+
+  <lasers>
+    <single_gaussian_laser>
+      <physics>
+        <shape>
+          <cutoff_radius>8e-05</cutoff_radius>
+          <spot_radius>4e-05</spot_radius>
+          <center>0.0 0.0 5e-05</center>
+          <direction>0.0 0.0 -1.0</direction>
+        </shape>
+        <absorptance>0.2</absorptance>
+        <power_magnitude_expression>999</power_magnitude_expression>
+        <motion>
+          <velocity>0.666 0.0 0.0</velocity>
+          <center>0.0 0.0 0.0</center>
+          <axis>0.0 0.0 1.0</axis>
+          <angular_frequency>0.0</angular_frequency>
+        </motion>
+      </physics>
+      <numerics>
+        <number_of_rays>50000</number_of_rays>
+        <ray_domain>
+          <min>-0.000212 -0.000212 -0.000312</min>
+          <max>0.001212 0.000212 0.000112</max>
+        </ray_domain>
+      </numerics>
+    </single_gaussian_laser>
+  </lasers>
+
+  <sim_control>
+    <tend>1.25e-05</tend>
+    <dt_output>2.5e-07</dt_output>
+    <output_type>vtk</output_type>
+    <freq_monitor_state>1</freq_monitor_state>
+    <freq_log_output>1</freq_log_output>
+    <freq_checkpoint>5000</freq_checkpoint>
+  </sim_control>
+
+  <rendering>
+    <domain>
+      <min>-0.00016 -0.00016 -0.000296</min>
+      <max>0.00116 0.00016 9.6e-05</max>
+    </domain>
+    <resolution>512 256 256</resolution>
+  </rendering>
+</config>
+
