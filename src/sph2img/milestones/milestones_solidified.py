@@ -1,5 +1,3 @@
-# src/sph2img/milestones/milestones_solidified.py
-#!/usr/bin/env python3
 from __future__ import annotations
 
 import numpy as np

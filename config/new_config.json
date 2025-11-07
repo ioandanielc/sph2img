@@ -1,0 +1,57 @@
+{
+  "project": "my-big-pipeline",
+  "dataset_tag": "exp_2025_11_06",
+
+  "sph2img": {
+    "python_bin": "/Applications/ParaView-6.0.0.app/Contents/bin/pvbatch",
+    "script_path": "/Users/ioandanielcraciun/Python-Projects/sph2img/bin/run_pipeline_full_mode.py",
+    "wrapper": "/Users/ioandanielcraciun/Python-Projects/sph2img/bin/run_pipeline_full_mode_from_config.py",
+    "single_script": "/Users/ioandanielcraciun/Python-Projects/sph2img/bin/run_pipeline_single_mode.py",
+
+    "sim_path": "/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/mhpc3d_200W_Ti64_Ar-3_BACKUP",
+    "out_dir": "/Users/ioandanielcraciun/Python-Projects/sph2img/outputs/caca",
+    "mode": "largest",
+    "run_name": "ss",
+
+    "eps": 0.001,
+    "x_start": 0.0,
+    "x_end": 0.0,
+    "solid_cuts": 30,
+
+    "front_w": 256,
+    "front_h": 256,
+    "side_w": 512,
+    "side_h": 256,
+    "top_w": 256,
+    "top_h": 256,
+
+    "x_side_offset": 0.00007,
+    "empty_out": true,
+    "post_delete": false
+  },
+
+  "gif": {
+    "wrapper": "/Users/ioandanielcraciun/Python-Projects/sph2img/bin/make_gifs_from_config.py",
+    "input_dir": "/Users/ioandanielcraciun/Python-Projects/sph2img/outputs/caca",
+    "output_dir": "/Users/ioandanielcraciun/Python-Projects/sph2img/outputs/caca_gifs"
+  },
+
+  "stat_checker": {
+    "sorter_script": "/Users/ioandanielcraciun/Python-Projects/sph2img/bin/sort_pngs_by_stat.py",
+    "wrapper": "/Users/ioandanielcraciun/Python-Projects/sph2img/bin/sort_pngs_by_stat_from_config.py",
+
+    "result_directory": "/Users/ioandanielcraciun/Python-Projects/sph2img/outputs/caca_results",
+
+    "unaccounted_file": "/Users/ioandanielcraciun/Python-Projects/sph2img/stat_lists/unaccounted.txt",
+    "stable_file": "/Users/ioandanielcraciun/Python-Projects/sph2img/stat_lists/stable.txt",
+    "unstable_file": "/Users/ioandanielcraciun/Python-Projects/sph2img/stat_lists/unstable.txt"
+  },
+
+  "tools": {
+    "pv_config_check": "/Users/ioandanielcraciun/Python-Projects/sph2img/bin/pv_config_check.py"
+  },
+
+  "other_stage": {
+    "enabled": false
+  }
+}
