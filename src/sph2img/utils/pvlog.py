@@ -1,119 +1,108 @@
 from __future__ import annotations
 
 import logging
-from logging.handlers import RotatingFileHandler
-from pathlib import Path
-import sys
 import os
-import re
+import sys
+from typing import Optional
 
-from sph2img.config import get_config
+RESET = "\x1b[0m"
+BOLD = "\x1b[1m"
+COLORS = {
+    "DEBUG": "\x1b[38;5;244m",
+    "INFO": "\x1b[38;5;39m",
+    "WARNING": "\x1b[38;5;214m",
+    "ERROR": "\x1b[38;5;196m",
+    "CRITICAL": "\x1b[48;5;196m\x1b[97m",
+}
 
-# ---------- formatting ----------
-_FMT = "%(asctime)s [%(levelname)s] pid=%(process)d %(name)s: %(message)s"
-_DATEFMT = "%Y-%m-%d %H:%M:%S"
-
-# ANSI support + colorizer
-_ESC_RE = re.compile(r"\x1b\[[0-9;]*m")
-
-def _supports_color(stream) -> bool:
-    try:
-        return hasattr(stream, "isatty") and stream.isatty() and os.environ.get("TERM") not in (None, "dumb")
-    except Exception:
-        return False
 
 class _ColorFormatter(logging.Formatter):
-    COLORS = {
-        "DEBUG":    "\x1b[36m",  # cyan
-        "INFO":     "\x1b[32m",  # green
-        "WARNING":  "\x1b[33m",  # yellow
-        "ERROR":    "\x1b[31m",  # red
-        "CRITICAL": "\x1b[41m",  # red bg
-    }
-    RESET = "\x1b[0m"
-
-    def __init__(self, fmt: str, datefmt: str | None, enable_colors: bool):
-        super().__init__(fmt=fmt, datefmt=datefmt)
-        self.enable_colors = enable_colors
+    def __init__(self, fmt: str, datefmt: Optional[str], use_color: bool) -> None:
+        super().__init__(fmt, datefmt=datefmt)
+        self.use_color = use_color
 
     def format(self, record: logging.LogRecord) -> str:
-        msg = super().format(record)
-        if not self.enable_colors:
-            return _ESC_RE.sub("", msg)
-        color = self.COLORS.get(record.levelname, "")
-        return f"{color}{msg}{self.RESET}" if color else msg
+        if self.use_color:
+            lvl = record.levelname
+            color = COLORS.get(lvl, "")
+            record.levelname = f"{BOLD}{color}{lvl}{RESET}"
+        try:
+            return super().format(record)
+        finally:
+            if self.use_color:
+                # remove the styling we injected
+                record.levelname = record.levelname.replace(BOLD, "").replace(RESET, "")
+                for c in COLORS.values():
+                    record.levelname = record.levelname.replace(c, "")
 
-# ---------- internals ----------
 
-_cfg = None  # cached config
+def _want_color(force: Optional[bool]) -> bool:
+    if force is not None:
+        return force
+    if not sys.stdout.isatty():
+        return False
+    if os.environ.get("NO_COLOR"):
+        return False
+    return os.environ.get("CLICOLOR", "1") != "0"
 
-def _ensure_cfg():
-    global _cfg
-    if _cfg is None:
-        _cfg = get_config()
-    return _cfg
 
-def _safe_file_handler(path: Path) -> logging.Handler | None:
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        h = RotatingFileHandler(str(path), maxBytes=5_000_000, backupCount=2, encoding="utf-8")
-        h.setFormatter(logging.Formatter(fmt=_FMT, datefmt=_DATEFMT))  # file logs are plain (no ANSI)
-        return h
-    except Exception:
-        return None
-
-class _LevelFilter(logging.Filter):
-    """Pass records whose level is between [min_level, max_level] inclusive."""
-    def __init__(self, min_level: int, max_level: int):
-        super().__init__()
-        self.min_level = min_level
-        self.max_level = max_level
-    def filter(self, record: logging.LogRecord) -> bool:
-        return self.min_level <= record.levelno <= self.max_level
-
-# ---------- public ----------
-
-def get_logger(name: str, run_name: str | None = None) -> logging.Logger:
+def get_logger(
+        name: Optional[str] = None,
+        level: int | str = "INFO",
+        *,
+        to_file: Optional[str] = None,
+        color: Optional[bool] = None,
+) -> logging.Logger:
     """
-    Return a module logger that logs to:
-      - stdout (DEBUG/INFO, colored if terminal supports it)
-      - stderr (WARNING/ERROR/CRITICAL, colored)
-      - rotating file logs/<run_name>_<pid>.log (plain)
+    Pretty, colored logger that includes PID and full date.
 
-    Default level: INFO.
+    Parameters
+    ----------
+    name:
+        Logger name. Defaults to "app".
+    level:
+        Logging level, e.g. "DEBUG", "INFO".
+    to_file:
+        Path to the log file. If None, defaults to "run.log".
+        Pass an empty string ("") explicitly if you do *not* want a file handler.
+    color:
+        Force enabling/disabling color. If None, auto-detect TTY support.
     """
-    cfg = _ensure_cfg()
-    logger = logging.getLogger(name)
+    logger_name = name or "app"
+    logger = logging.getLogger(logger_name)
 
-    if getattr(logger, "_sph2img_configured", False):
-        return logger
+    # Default logfile if not given
+    if to_file is None:
+        to_file = "run.log"
 
-    logger.setLevel(logging.INFO)
-    logger.propagate = False  # avoid duplicate emission via root
+    if not getattr(logger, "_pretty_configured", False):
+        logger.setLevel(logging.DEBUG)
 
-    # Console handlers
-    use_color_out = _supports_color(sys.stdout)
-    use_color_err = _supports_color(sys.stderr)
+        ch = logging.StreamHandler(stream=sys.stdout)
+        ch_level = logging._nameToLevel[str(level).upper()] if isinstance(level, str) else level
+        ch.setLevel(ch_level)
 
-    # stdout: DEBUG..INFO
-    ch_out = logging.StreamHandler(stream=sys.stdout)
-    ch_out.addFilter(_LevelFilter(logging.DEBUG, logging.INFO))
-    ch_out.setFormatter(_ColorFormatter(fmt=_FMT, datefmt=_DATEFMT, enable_colors=use_color_out))
-    logger.addHandler(ch_out)
+        # Include *date and time*: YYYY-MM-DD HH:MM:SS
+        fmt = "%(asctime)s │ pid=%(process)d │ %(levelname)s │ %(name)s:%(lineno)d │ %(message)s"
+        datefmt = "%Y-%m-%d %H:%M:%S"
 
-    # stderr: WARNING..CRITICAL
-    ch_err = logging.StreamHandler(stream=sys.stderr)
-    ch_err.addFilter(_LevelFilter(logging.WARNING, logging.CRITICAL))
-    ch_err.setFormatter(_ColorFormatter(fmt=_FMT, datefmt=_DATEFMT, enable_colors=use_color_err))
-    logger.addHandler(ch_err)
+        use_color = _want_color(color)
+        ch.setFormatter(_ColorFormatter(fmt, datefmt, use_color))
+        logger.addHandler(ch)
 
-    # File handler (PID in filename)
-    pid = os.getpid()
-    base = run_name or "sph2img"
-    fname = f"{base}_{pid}.log"
-    fh = _safe_file_handler(Path(cfg.paths.logs_dir) / fname)
-    if fh:
-        logger.addHandler(fh)
+        # File handler (no colors) – only if to_file != ""
+        if to_file:
+            fh = logging.FileHandler(to_file, encoding="utf-8")
+            fh.setLevel(ch_level)
+            fh.setFormatter(logging.Formatter(fmt, datefmt=datefmt))
+            logger.addHandler(fh)
 
-    logger._sph2img_configured = True  # type: ignore[attr-defined]
+        logger.propagate = False
+        logger._pretty_configured = True  # type: ignore[attr-defined]
+    else:
+        # If logger already configured, just update handler levels
+        lvl = logging._nameToLevel[str(level).upper()] if isinstance(level, str) else level
+        for h in logger.handlers:
+            h.setLevel(lvl)
+
     return logger

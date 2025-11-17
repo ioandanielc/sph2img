@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys, json, argparse, subprocess
 from pathlib import Path
+import subprocess
 
 REQ = [
     "python_bin","script_path","sim_path","out_dir","mode","run_name",
@@ -51,6 +52,7 @@ def main():
         "--top-w",         str(int(cfg["top_w"])),
         "--top-h",         str(int(cfg["top_h"])),
         "--x-side-offset", str(cfg["x_side_offset"]),
+        "--logger-path", str(big["logger_path"]),
     ]
     if bool(cfg["empty_out"]):
         cmd.append("--empty-out")

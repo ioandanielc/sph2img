@@ -132,28 +132,6 @@ def deploy_and_die(
     )
     logger.info("[deploy] Screenshots saved (Δt=%.3fs).", time.time() - t_shot)
 
-    # 5) Delete the .vtk files (if flag activated)
-    if delete_vtk:
-        logger.info("[deploy] Deleting VTK files for snapshot %s …", snapshot_index)
-        t_del = time.time()
-        Path(path_to_solid_phase).unlink(missing_ok=True)
-        logger.info("[deploy] Deleted SOLID: %s", path_to_solid_phase)
-
-        Path(path_to_liquid_phase).unlink(missing_ok=True)
-        logger.info("[deploy] Deleted LIQUID: %s", path_to_liquid_phase)
-
-        Path(path_to_gas_phase).unlink(missing_ok=True)
-        logger.info("[deploy] Deleted GAS: %s", path_to_gas_phase)
-
-        Path(path_to_wall_phase).unlink(missing_ok=True)
-        logger.info("[deploy] Deleted WALL: %s", path_to_wall_phase)
-        logger.info("[deploy] VTK deletions complete (Δt=%.3fs).", time.time() - t_del)
-    else:
-        logger.info("[deploy] MOCK delete: SOLID %s", path_to_solid_phase)
-        logger.info("[deploy] MOCK delete: LIQUID %s", path_to_liquid_phase)
-        logger.info("[deploy] MOCK delete: GAS %s", path_to_gas_phase)
-        logger.info("[deploy] MOCK delete: WALL %s", path_to_wall_phase)
-
     logger.info("[deploy] FINISHED (total Δt=%.3fs).", time.time() - t_all)
     return
 

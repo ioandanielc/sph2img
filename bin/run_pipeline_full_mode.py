@@ -21,8 +21,16 @@ from sph2img.stages.slice_mover import move_slices_origin
 from sph2img.stages.instant_module import prepare_paths_from_sim_path, clean_reset_paraview, deploy_and_die
 from sph2img.stages.screencapture_slice_composite import screenshot_set
 from paraview.simple import Render  # type: ignore
+import importlib.util
 
-log = get_logger(__name__)
+
+def load_get_logger(logger_path: str):
+    path = Path(logger_path).expanduser().resolve()
+    spec = importlib.util.spec_from_file_location("external_pvlog", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module.get_logger
 
 
 def parse_args() -> argparse.Namespace:
@@ -32,6 +40,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out-dir",   type=Path, required=True)
     parser.add_argument("--mode",      choices=["solid", "laser", "largest"], required=True)
     parser.add_argument("--run-name",  type=str, required=True)
+    parser.add_argument("--logger-path",   type=Path, required=True)
 
     parser.add_argument("--eps", type=float, default=float(DEFAULT_EPS))
     parser.add_argument("--x-start", type=float, default=None)
@@ -63,6 +72,8 @@ def restrict_to_single_iter(liq_idx, liq_iters, liq_paths, wanted: int):
 
 
 def deploy(args: argparse.Namespace) -> Path:
+    log = get_logger("SPH2IMG", level="INFO")
+
     t0 = time.time()
     log.info("=== run_pipeline_full_mode.deploy START ===")
     log.info(f"[python] intended={args.python_bin} running={sys.executable}")
@@ -147,7 +158,6 @@ def deploy(args: argparse.Namespace) -> Path:
 def main():
     args = parse_args()
     out_dir = deploy(args)
-    print(out_dir)
 
 
 if __name__ == "__main__":

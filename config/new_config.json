@@ -1,6 +1,7 @@
 {
   "project": "my-big-pipeline",
   "dataset_tag": "exp_2025_11_06",
+  "logger_path": "/Users/ioandanielcraciun/Python-Projects/sph2img/src/sph2img/utils/pvlog.py",
 
   "sph2img": {
     "python_bin": "/Applications/ParaView-6.0.0.app/Contents/bin/pvbatch",
@@ -9,7 +10,7 @@
     "single_script": "/Users/ioandanielcraciun/Python-Projects/sph2img/bin/run_pipeline_single_mode.py",
 
     "sim_path": "/Users/ioandanielcraciun/Python-Projects/sph2img/simulations/mhpc3d_200W_Ti64_Ar-3_BACKUP",
-    "out_dir": "/Users/ioandanielcraciun/Python-Projects/sph2img/outputs/caca",
+    "out_dir": "/Users/ioandanielcraciun/Python-Projects/fssentinel/output_data",
     "mode": "largest",
     "run_name": "ss",
 
@@ -32,15 +33,26 @@
 
   "gif": {
     "wrapper": "/Users/ioandanielcraciun/Python-Projects/sph2img/bin/make_gifs_from_config.py",
-    "input_dir": "/Users/ioandanielcraciun/Python-Projects/sph2img/outputs/caca",
-    "output_dir": "/Users/ioandanielcraciun/Python-Projects/sph2img/outputs/caca_gifs"
+    "input_dir": "/Users/ioandanielcraciun/Python-Projects/fssentinel/output_data",
+    "output_dir": "/Users/ioandanielcraciun/Python-Projects/fssentinel/output_data"
   },
 
   "stat_checker": {
+    "python_bin": "/Applications/ParaView-6.0.0.app/Contents/bin/pvbatch",
+    "script_path": "/Users/ioandanielcraciun/Python-Projects/aersph_stat_checker/src/aersph_stat_checker/stat_tester.py",
+
+    "sim": "/Users/ioandanielcraciun/Python-Projects/fssentinel/data",
+    "out_dir": "/Users/ioandanielcraciun/Python-Projects/fssentinel/output_data/stat_tests",
+
+    "tol": 0.045,
+    "win": 500
+  },
+
+  "png_sorter": {
     "sorter_script": "/Users/ioandanielcraciun/Python-Projects/sph2img/bin/sort_pngs_by_stat.py",
     "wrapper": "/Users/ioandanielcraciun/Python-Projects/sph2img/bin/sort_pngs_by_stat_from_config.py",
 
-    "result_directory": "/Users/ioandanielcraciun/Python-Projects/sph2img/outputs/caca_results",
+    "result_directory": "/Users/ioandanielcraciun/Python-Projects/fssentinel/final_results",
 
     "unaccounted_file": "/Users/ioandanielcraciun/Python-Projects/sph2img/stat_lists/unaccounted.txt",
     "stable_file": "/Users/ioandanielcraciun/Python-Projects/sph2img/stat_lists/stable.txt",
