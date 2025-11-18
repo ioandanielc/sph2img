@@ -1,0 +1,40 @@
+{
+  "mode": "interactive",
+  "paths": {
+    "wrapper": "/dss/dssfs04/lwp-dss-0002/pn36ni/pn36ni-dss-0000/ge57gon2/projects/aersph_pipeline/submit_aersph_containerized_run.sh",
+    "runner": "/dss/dssfs04/lwp-dss-0002/pn36ni/pn36ni-dss-0000/ge57gon2/projects/aersph_pipeline/aersph_containerized_run_runner.sh", 
+    "clean_aersph": "/dss/dssfs04/lwp-dss-0002/pn36ni/pn36ni-dss-0000/ge57gon2/projects/aersph_enroot_automation/clean_files/aersph",
+    "enroot_image": "/dss/dssfs04/lwp-dss-0002/pn36ni/pn36ni-dss-0000/ge57gon2/projects/aersph_enroot_automation/clean_files/aersph-enroot-image.sqsh",
+    "configurer_py": "/dss/dssfs04/lwp-dss-0002/pn36ni/pn36ni-dss-0000/ge57gon2/projects/aersph_pipeline/configurer.py",
+    "template_xml": "/dss/dssfs04/lwp-dss-0002/pn36ni/pn36ni-dss-0000/ge57gon2/projects/aersph_pipeline/aersph_containerized_run_configuration.xml",
+    "running_root": "/dss/dssfs04/lwp-dss-0002/pn36ni/pn36ni-dss-0000/ge57gon2/projects/aersph_pipeline/running_jobs", 
+    "results_root": "/dss/dssfs04/lwp-dss-0002/pn36ni/pn36ni-dss-0000/ge57gon2/projects/aersph_pipeline/finished_runs"
+  },
+  "slurm": {
+    "job_name": "aersph_containerized_run",
+    "partition": "lrz-hgx-h100-94x4",
+    "gres": "gpu:1",
+    "cpus_per_task": 4,
+    "mem": "32G",
+    "time": "48:00:00",
+    "qos": "",
+    "output": "/dss/dssfs04/lwp-dss-0002/pn36ni/pn36ni-dss-0000/ge57gon2/projects/aersph_pipeline/logs/slurm-%x-%j.out",
+    "error": "/dss/dssfs04/lwp-dss-0002/pn36ni/pn36ni-dss-0000/ge57gon2/projects/aersph_pipeline/logs/slurm-%x-%j.err",
+    "array": "",
+    "constraint": "",
+    "account": "",
+    "mail_type": "",
+    "mail_user": ""
+  },
+  "runner_flags": {
+    "keep_run_dir": false,
+    "dry_run": false
+  },
+  "edits": [
+    ["/lasers/single_gaussian_laser/physics/power_magnitude_expression", 600],
+    ["/lasers/single_gaussian_laser/physics/motion/velocity", [0.2, 0.0, 0.0]],
+    ["/sim_control/tend", 1.25e-05],
+    ["/sim_control/dt_output", 2.5e-07]
+
+  ]
+}

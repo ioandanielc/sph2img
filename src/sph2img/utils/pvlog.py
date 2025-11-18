@@ -22,6 +22,11 @@ class _ColorFormatter(logging.Formatter):
         self.use_color = use_color
 
     def format(self, record: logging.LogRecord) -> str:
+        # elapsed seconds since logging module was loaded
+        # (i.e., approximately since program start)
+        if not hasattr(record, "elapsed"):
+            record.elapsed = record.relativeCreated / 1000.0
+
         if self.use_color:
             lvl = record.levelname
             color = COLORS.get(lvl, "")
@@ -54,7 +59,7 @@ def get_logger(
         color: Optional[bool] = None,
 ) -> logging.Logger:
     """
-    Pretty, colored logger that includes PID and full date.
+    Pretty, colored logger that includes PID, full date, and elapsed time.
 
     Parameters
     ----------
@@ -82,8 +87,11 @@ def get_logger(
         ch_level = logging._nameToLevel[str(level).upper()] if isinstance(level, str) else level
         ch.setLevel(ch_level)
 
-        # Include *date and time*: YYYY-MM-DD HH:MM:SS
-        fmt = "%(asctime)s │ pid=%(process)d │ %(levelname)s │ %(name)s:%(lineno)d │ %(message)s"
+        # Include date, time and elapsed seconds: YYYY-MM-DD HH:MM:SS │ +0.123s
+        fmt = (
+            "%(asctime)s │ +%(elapsed)7.3fs │ "
+            "pid=%(process)d │ %(levelname)s │ %(name)s:%(lineno)d │ %(message)s"
+        )
         datefmt = "%Y-%m-%d %H:%M:%S"
 
         use_color = _want_color(color)
@@ -94,7 +102,8 @@ def get_logger(
         if to_file:
             fh = logging.FileHandler(to_file, encoding="utf-8")
             fh.setLevel(ch_level)
-            fh.setFormatter(logging.Formatter(fmt, datefmt=datefmt))
+            # reuse same formatter, but without colors
+            fh.setFormatter(_ColorFormatter(fmt, datefmt, use_color=False))
             logger.addHandler(fh)
 
         logger.propagate = False
